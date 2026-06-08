@@ -37,7 +37,7 @@
 **Meta:** el jugador gestiona y ve batallas.
 - [x] Ventana compacta, sin bordes y **movible** (arrastrar para reposicionar) — `Main.cs`.
 - [x] Integración Godot↔core: la pantalla usa `FarmingSimulator`/`PowerRating` reales.
-- [ ] Persistencia: leer/escribir `SaveData` en `user://` + progreso offline al abrir.
+- [x] Persistencia: `SaveStore` (I/O en `user://`) + `GameSession` (carga/crea, progreso offline al abrir). Verificado end-to-end.
 - [ ] Panel principal: equipo, inventario, equipar partes.
 - [ ] Reproductor de batalla: anima el log de eventos del simulador (no recalcula).
 - [ ] Editor de formación (posicionamiento frontal/retaguardia).
