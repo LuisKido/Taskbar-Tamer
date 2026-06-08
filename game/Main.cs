@@ -43,6 +43,9 @@ public partial class Main : Control
         _formationScene = GD.Load<PackedScene>("res://Scenes/Formation.tscn");
         BuildUi();
 
+        // La ventana arranca con el tamaño compacto correcto (no el de project.godot).
+        GetWindow().Size = CompactSize;
+
         long now = (long)Time.GetUnixTimeFromSystem();
         _session.LoadOrCreate(now);
         _session.ApplyOfflineProgress(now);
