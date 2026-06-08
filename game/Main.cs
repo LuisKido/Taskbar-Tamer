@@ -1,27 +1,28 @@
 using Godot;
-using System;
-using System.Collections.Generic;
-using TaskbarTamer.Core;
-using TaskbarTamer.Core.Idle;
-using TaskbarTamer.Core.Model;
-using TaskbarTamer.Core.Simulation;
 
 namespace TaskbarTamer.Game;
 
 /// <summary>
-/// Pantalla compacta de Taskbar Tamer. Es una ventana sin bordes que el usuario
-/// arrastra donde quiera. Sirve de prueba de integración Godot↔core: construye un
-/// equipo, calcula su poder y resuelve una sesión de farming con la lógica de core/.
+/// Pantalla compacta de Taskbar Tamer: ventana sin bordes y movible. Carga la partida,
+/// aplica el progreso de farming offline al abrir y deja farmear bajo demanda. Toda la
+/// lógica vive en core/ vía <see cref="GameSession"/>.
 /// </summary>
 public partial class Main : Control
 {
+    private readonly GameSession _session = new();
     private bool _dragging;
     private Label _statusLabel = null!;
+    private Label _offlineLabel = null!;
 
     public override void _Ready()
     {
         BuildUi();
-        RunFarmingDemo();
+
+        long now = (long)Time.GetUnixTimeFromSystem();
+        _session.LoadOrCreate(now);
+        _session.ApplyOfflineProgress(now);
+
+        Refresh();
     }
 
     private void BuildUi()
@@ -38,7 +39,7 @@ public partial class Main : Control
         panel.AddChild(margin);
 
         var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 6);
+        vbox.AddThemeConstantOverride("separation", 5);
         margin.AddChild(vbox);
 
         var header = new HBoxContainer();
@@ -57,46 +58,49 @@ public partial class Main : Control
         _statusLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         vbox.AddChild(_statusLabel);
 
-        var hint = new Label { Text = "Arrastra para mover la ventana." };
-        hint.Modulate = new Color(1, 1, 1, 0.5f);
+        _offlineLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _offlineLabel.Modulate = new Color(0.6f, 0.9f, 0.6f);
+        vbox.AddChild(_offlineLabel);
+
+        var farmButton = new Button { Text = "Farmear +1 h", FocusMode = FocusModeEnum.None };
+        farmButton.Pressed += OnFarmPressed;
+        vbox.AddChild(farmButton);
+
+        var hint = new Label { Text = "Arrastra para mover · cierra y reabre: el progreso se guarda" };
+        hint.Modulate = new Color(1, 1, 1, 0.45f);
+        hint.AddThemeFontSizeOverride("font_size", 10);
         vbox.AddChild(hint);
     }
 
-    /// <summary>Usa core/ para construir un equipo y resolver 1 hora de farming.</summary>
-    private void RunFarmingDemo()
+    private void OnFarmPressed()
     {
-        GameConfig config = GameConfig.Default;
+        _session.FarmFor(3600);
+        Refresh();
+    }
 
-        var equipped = new Dictionary<AnatomySlot, Part>
-        {
-            [AnatomySlot.Claws] = PartFactory.Create(1, "Abisal", AnatomySlot.Claws, Rarity.Raro, config),
-            [AnatomySlot.Shell] = PartFactory.Create(2, "Abisal", AnatomySlot.Shell, Rarity.Comun, config),
-        };
-        var hero = new Creature(100, "Mordak", new Stats(300, 20, 10, 15, 0, 0, 0, 0), equipped);
-        var setup = new Setup(new[] { hero }, Array.Empty<Creature>());
-        int power = PowerRating.Of(setup, SetRegistry.Empty);
-
-        var biome = new Biome("Bosque Abisal", requiredPower: 0, new[]
-        {
-            new LootEntry("Abisal", AnatomySlot.Fangs, Rarity.Comun, 70),
-            new LootEntry("Abisal", AnatomySlot.Claws, Rarity.Raro, 25),
-            new LootEntry("Abisal", AnatomySlot.Stinger, Rarity.Epico, 5),
-        });
-
-        var ids = new IdAllocator(1000);
-        FarmingResult result = FarmingSimulator.Resolve(
-            new FarmingAssignment(power, RngState: 12345), biome, elapsedSeconds: 3600, ids, config);
-
-        int epicos = 0;
-        foreach (Part p in result.Loot)
-            if (p.Rarity == Rarity.Epico) epicos++;
-
+    private void Refresh()
+    {
+        var state = _session.State;
         _statusLabel.Text =
-            $"{hero.Name}  ·  poder {power}\n" +
-            $"Bioma: {biome.Id}\n" +
-            $"1 h → {result.Encounters} encuentros\n" +
-            $"Botín: {result.Loot.Count}  (épicos: {epicos})\n" +
-            $"XP: {result.XpGained}";
+            $"Equipo: {state.Roster.Count} criatura(s) · poder {_session.TeamPower}\n" +
+            $"Bioma: {state.CurrentBiomeId}\n" +
+            $"Inventario: {state.Inventory.Count} partes";
+
+        if (_session.LastOfflineLoot > 0)
+        {
+            long mins = _session.LastOfflineSeconds / 60;
+            _offlineLabel.Text = $"Mientras no estabas ({mins} min): +{_session.LastOfflineLoot} botín";
+            _offlineLabel.Visible = true;
+        }
+        else
+        {
+            _offlineLabel.Visible = false;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        _session.Save();
     }
 
     // Arrastre de la ventana sin bordes: mover con el botón izquierdo pulsado.

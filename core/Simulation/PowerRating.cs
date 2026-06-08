@@ -9,10 +9,12 @@ namespace TaskbarTamer.Core.Simulation;
 /// </summary>
 public static class PowerRating
 {
-    public static int Of(Setup setup, SetRegistry sets)
+    public static int Of(Setup setup, SetRegistry sets) => Of(setup.All, sets);
+
+    public static int Of(IEnumerable<Creature> creatures, SetRegistry sets)
     {
         long total = 0;
-        foreach (Creature creature in setup.All)
+        foreach (Creature creature in creatures)
         {
             Stats s = StatsResolver.Resolve(creature, sets).Stats;
             total += s.Attack
