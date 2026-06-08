@@ -9,26 +9,45 @@ namespace TaskbarTamer.Game;
 
 /// <summary>
 /// Arena en vivo: visualiza el farming como un auto-battler continuo. Las criaturas
-/// del jugador (círculos) lanzan poderes a hordas de enemigos; al limpiar una oleada
-/// avanza la <b>Fase</b> y los enemigos se vuelven más fuertes. El daño escala con el
-/// poder del equipo. Es cosmético + progresión; la economía (loot/esencia) la lleva el
-/// farming por tiempo.
+/// del jugador luchan según su posición en la formación: las <b>frontales atacan
+/// melee</b> (cargan hacia el enemigo y golpean de cerca) y las de <b>retaguardia
+/// atacan a distancia</b> (disparan poderes). Al limpiar una oleada avanza la Fase
+/// y los enemigos escalan. Cosmético + progresión; la economía la lleva el farming
+/// por tiempo.
 /// </summary>
 public partial class ArenaView : Control
 {
-    private const float PlayerX = 26f;
-    private const float StopX = 84f;
-    private const float EnemySpeed = 16f;
+    private const float RangedX = 22f;
+    private const float MeleeX = 64f;
+    private const float StopX = 92f;
+    private const float EnemySpeed = 15f;
     private const float ProjectileSpeed = 280f;
-    private const float AttackInterval = 0.5f;
+    private const float MeleeSpeed = 78f;
+    private const float AttackInterval = 0.55f;
     private const int WaveSize = 5;
     private const float BaseEnemyHp = 20f;
 
-    private static readonly Color PlayerColor = new(0.45f, 0.72f, 1f);
+    private static readonly Color MeleeColor = new(0.45f, 0.72f, 1f);
+    private static readonly Color RangedColor = new(0.45f, 0.95f, 0.85f);
     private static readonly Color EnemyColor = new(0.92f, 0.38f, 0.38f);
     private static readonly Color ShotColor = new(1f, 0.9f, 0.45f);
     private static readonly Color HpBackColor = new(0f, 0f, 0f, 0.5f);
     private static readonly Color HpColor = new(0.4f, 0.95f, 0.45f);
+
+    private enum Role { Melee, Ranged }
+
+    private sealed class PlayerUnit
+    {
+        public Vector2 Pos;
+        public Role Role;
+        public int LaneIndex;
+        public int LaneCount;
+        public float Damage;
+        public float CritChance;
+        public float AttackTimer;
+        public Color Color;
+        public float Radius;
+    }
 
     private sealed class Enemy
     {
@@ -63,13 +82,10 @@ public partial class ArenaView : Control
     public event Action? StageAdvanced;
 
     private GameSession _session = null!;
+    private readonly List<PlayerUnit> _units = new();
     private readonly List<Enemy> _enemies = new();
     private readonly List<Shot> _shots = new();
     private readonly List<DamageNumber> _damageNumbers = new();
-    private float _attackTimer;
-    private float _playerDamage = 4f;
-    private float _critChance = 0.12f;
-    private int _shooters = 1;
     private double _saveAccum;
     private bool _dirty;
 
@@ -77,30 +93,52 @@ public partial class ArenaView : Control
     {
         _session = session;
         CustomMinimumSize = new Vector2(0, 132);
-        RecomputeTeam();
+        BuildUnits();
         SpawnWave();
     }
 
-    private void RecomputeTeam()
+    // Construye las unidades a partir de la formación: frontal → melee, retaguardia → distancia.
+    private void BuildUnits()
     {
+        _units.Clear();
         Setup? setup = _session.BuildPlayerSetup();
-        List<Creature> fighters = setup is not null
-            ? setup.All.Take(3).ToList()
-            : _session.State.Roster.Take(3).ToList();
 
-        _shooters = Math.Max(1, fighters.Count);
+        List<Creature> front = (setup?.FrontLine ?? (IReadOnlyList<Creature>)_session.State.Roster).Take(3).ToList();
+        List<Creature> back = (setup?.BackLine ?? Array.Empty<Creature>()).Take(3).ToList();
 
-        float attack = 0;
-        float critBp = 0;
-        foreach (Creature c in fighters)
+        for (int i = 0; i < front.Count; i++)
+            _units.Add(MakeUnit(front[i], Role.Melee, i, front.Count));
+        for (int i = 0; i < back.Count; i++)
+            _units.Add(MakeUnit(back[i], Role.Ranged, i, back.Count));
+
+        if (_units.Count == 0 && _session.State.Roster.Count > 0)
+            _units.Add(MakeUnit(_session.State.Roster[0], Role.Melee, 0, 1));
+
+        foreach (PlayerUnit u in _units)
+            u.Pos = HomeFor(u);
+    }
+
+    private PlayerUnit MakeUnit(Creature creature, Role role, int laneIndex, int laneCount)
+    {
+        Stats s = StatsResolver.Resolve(creature, SetRegistry.Empty).Stats;
+        return new PlayerUnit
         {
-            Stats s = StatsResolver.Resolve(c, SetRegistry.Empty).Stats;
-            attack += s.Attack;
-            critBp += s.CritChance;
-        }
-        _playerDamage = Math.Max(4f, attack * 0.5f);
-        critBp /= _shooters;
-        _critChance = Math.Clamp(0.12f + critBp / 10000f, 0f, 0.6f); // 12% base + crítico del equipo
+            Role = role,
+            LaneIndex = laneIndex,
+            LaneCount = laneCount,
+            Damage = Math.Max(4f, s.Attack * 0.5f),
+            CritChance = Math.Clamp(0.12f + s.CritChance / 10000f, 0f, 0.6f),
+            AttackTimer = GD.Randf() * AttackInterval,
+            Color = role == Role.Melee ? MeleeColor : RangedColor,
+            Radius = role == Role.Melee ? 9f : 8f,
+        };
+    }
+
+    private Vector2 HomeFor(PlayerUnit u)
+    {
+        float h = Math.Max(Size.Y, 100f);
+        float x = u.Role == Role.Ranged ? RangedX : MeleeX;
+        return new Vector2(x, h * (u.LaneIndex + 1) / (u.LaneCount + 1));
     }
 
     private void SpawnWave()
@@ -129,14 +167,7 @@ public partial class ArenaView : Control
 
         float dt = (float)delta;
 
-        // Las criaturas atacan al enemigo más cercano por intervalos.
-        _attackTimer -= dt;
-        if (_attackTimer <= 0f && _enemies.Count > 0)
-        {
-            FireVolley();
-            _attackTimer = AttackInterval;
-        }
-
+        UpdateUnits(dt);
         UpdateShots(dt);
         AdvanceEnemies(dt);
         UpdateDamageNumbers(dt);
@@ -144,7 +175,7 @@ public partial class ArenaView : Control
         if (_enemies.Count == 0)
         {
             _session.AdvanceStage();
-            RecomputeTeam();
+            BuildUnits();
             SpawnWave();
             _dirty = true;
             StageAdvanced?.Invoke();
@@ -162,22 +193,58 @@ public partial class ArenaView : Control
         QueueRedraw();
     }
 
-    private void FireVolley()
+    private void UpdateUnits(float dt)
     {
-        var players = PlayerPositions();
-        for (int i = 0; i < players.Count; i++)
+        foreach (PlayerUnit u in _units)
         {
-            Enemy? target = NearestEnemy(players[i]);
-            if (target is null)
-                break;
-            bool crit = GD.Randf() < _critChance;
-            _shots.Add(new Shot
+            Vector2 home = HomeFor(u);
+            Enemy? target = NearestEnemy(u.Pos);
+
+            if (u.Role == Role.Ranged)
             {
-                Pos = players[i],
-                Target = target,
-                Damage = crit ? _playerDamage * 2f : _playerDamage,
-                Crit = crit,
-            });
+                u.Pos = home; // la retaguardia se mantiene en su sitio
+                u.AttackTimer -= dt;
+                if (target is not null && u.AttackTimer <= 0f)
+                {
+                    bool crit = GD.Randf() < u.CritChance;
+                    _shots.Add(new Shot
+                    {
+                        Pos = u.Pos,
+                        Target = target,
+                        Damage = crit ? u.Damage * 2f : u.Damage,
+                        Crit = crit,
+                    });
+                    u.AttackTimer = AttackInterval;
+                }
+                continue;
+            }
+
+            // Melee: carga hacia el enemigo y golpea de cerca; si no hay, vuelve a casa.
+            if (target is null)
+            {
+                u.Pos = u.Pos.MoveToward(home, MeleeSpeed * dt);
+                continue;
+            }
+
+            float range = u.Radius + target.Radius + 3f;
+            if (u.Pos.DistanceTo(target.Pos) > range)
+            {
+                u.Pos = u.Pos.MoveToward(target.Pos, MeleeSpeed * dt);
+            }
+            else
+            {
+                u.AttackTimer -= dt;
+                if (u.AttackTimer <= 0f)
+                {
+                    bool crit = GD.Randf() < u.CritChance;
+                    float dmg = crit ? u.Damage * 2f : u.Damage;
+                    target.Hp -= dmg;
+                    SpawnDamageNumber(target.Pos, (int)MathF.Round(dmg), crit);
+                    if (target.Hp <= 0f)
+                        _enemies.Remove(target);
+                    u.AttackTimer = AttackInterval;
+                }
+            }
         }
     }
 
@@ -216,6 +283,15 @@ public partial class ArenaView : Control
         }
     }
 
+    private void AdvanceEnemies(float dt)
+    {
+        foreach (Enemy e in _enemies)
+        {
+            float nx = Math.Max(StopX, e.Pos.X - EnemySpeed * dt);
+            e.Pos = new Vector2(nx, e.Pos.Y);
+        }
+    }
+
     private void SpawnDamageNumber(Vector2 at, int amount, bool crit)
     {
         _damageNumbers.Add(new DamageNumber
@@ -243,36 +319,21 @@ public partial class ArenaView : Control
         }
     }
 
-    private void AdvanceEnemies(float dt)
-    {
-        foreach (Enemy e in _enemies)
-        {
-            float nx = Math.Max(StopX, e.Pos.X - EnemySpeed * dt);
-            e.Pos = new Vector2(nx, e.Pos.Y);
-        }
-    }
-
-    private List<Vector2> PlayerPositions()
-    {
-        float h = Math.Max(Size.Y, 100f);
-        var list = new List<Vector2>(_shooters);
-        for (int i = 0; i < _shooters; i++)
-            list.Add(new Vector2(PlayerX, h * (i + 1) / (_shooters + 1)));
-        return list;
-    }
-
     public override void _Draw()
     {
-        // Fondo de la arena.
         DrawRect(new Rect2(Vector2.Zero, Size), new Color(0.08f, 0.08f, 0.10f));
 
-        foreach (Vector2 p in PlayerPositions())
-            DrawCircle(p, 9f, PlayerColor);
+        foreach (PlayerUnit u in _units)
+        {
+            DrawCircle(u.Pos, u.Radius, u.Color);
+            // Anillo en las unidades a distancia para distinguirlas de las melee.
+            if (u.Role == Role.Ranged)
+                DrawArc(u.Pos, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.5f), 1.5f);
+        }
 
         foreach (Enemy e in _enemies)
         {
             DrawCircle(e.Pos, e.Radius, EnemyColor);
-            // Barra de vida sobre el enemigo.
             float frac = Math.Clamp(e.Hp / e.MaxHp, 0f, 1f);
             var barPos = new Vector2(e.Pos.X - 9f, e.Pos.Y - e.Radius - 6f);
             DrawRect(new Rect2(barPos, new Vector2(18f, 3f)), HpBackColor);
@@ -304,7 +365,6 @@ public partial class ArenaView : Control
 
             for (int i = 0; i < d.Text.Length; i++)
             {
-                // Escalonado: cada dígito sube un poco respecto al anterior (look RO).
                 float yStagger = -MathF.Sin((i + 1) * 0.9f) * 2.5f * d.Scale;
                 var pos = new Vector2(d.Pos.X + i * digitWidth, d.Pos.Y + yStagger);
                 DrawString(font, pos, d.Text[i].ToString(),
