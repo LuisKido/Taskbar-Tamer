@@ -62,6 +62,37 @@ public sealed class GameSession
         return (result.Loot.Count, result.XpGained);
     }
 
+    /// <summary>Equipa una parte del inventario en una criatura del roster. Persiste.</summary>
+    public void Equip(int creatureIndex, Part part)
+    {
+        if (creatureIndex < 0 || creatureIndex >= State.Roster.Count)
+            return;
+        if (!State.Inventory.Remove(part))
+            return; // la parte debe estar en el inventario
+
+        (Creature creature, Part? displaced) = Core.Model.Equipment.Equip(State.Roster[creatureIndex], part);
+        State.Roster[creatureIndex] = creature;
+        if (displaced is not null)
+            State.Inventory.Add(displaced); // la desplazada vuelve al inventario
+
+        Save();
+    }
+
+    /// <summary>Desequipa la parte de una ranura y la devuelve al inventario. Persiste.</summary>
+    public void Unequip(int creatureIndex, AnatomySlot slot)
+    {
+        if (creatureIndex < 0 || creatureIndex >= State.Roster.Count)
+            return;
+
+        (Creature creature, Part? removed) = Core.Model.Equipment.Unequip(State.Roster[creatureIndex], slot);
+        if (removed is null)
+            return;
+
+        State.Roster[creatureIndex] = creature;
+        State.Inventory.Add(removed);
+        Save();
+    }
+
     public void Save() => SaveStore.Save(State);
 
     // Resuelve farming sobre el bioma actual y vuelca el botín al estado.

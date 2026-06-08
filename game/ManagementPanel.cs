@@ -1,0 +1,207 @@
+using Godot;
+using System;
+using TaskbarTamer.Core.Model;
+using TaskbarTamer.Core.Simulation;
+
+namespace TaskbarTamer.Game;
+
+/// <summary>
+/// Panel de gestión (fase activa): muestra el roster, las ranuras de anatomía de la
+/// criatura seleccionada y el inventario. Permite equipar partes del inventario y
+/// desequiparlas. Cada acción pasa por <see cref="GameSession"/> (que usa core/) y
+/// persiste; la UI solo refleja el estado.
+/// </summary>
+public partial class ManagementPanel : Control
+{
+    public event Action? Closed;
+
+    private GameSession _session = null!;
+    private int _selected;
+
+    private Label _powerLabel = null!;
+    private VBoxContainer _rosterBox = null!;
+    private VBoxContainer _slotsBox = null!;
+    private Label _invCountLabel = null!;
+    private VBoxContainer _invBox = null!;
+
+    public void Begin(GameSession session)
+    {
+        _session = session;
+        BuildUi();
+        RefreshAll();
+    }
+
+    private void BuildUi()
+    {
+        var bg = new PanelContainer();
+        bg.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(bg);
+
+        var margin = new MarginContainer();
+        foreach (string side in new[] { "left", "right", "top", "bottom" })
+            margin.AddThemeConstantOverride($"margin_{side}", 12);
+        bg.AddChild(margin);
+
+        var root = new VBoxContainer();
+        root.AddThemeConstantOverride("separation", 8);
+        margin.AddChild(root);
+
+        // Cabecera
+        var header = new HBoxContainer();
+        root.AddChild(header);
+
+        var title = new Label { Text = "🧬 Gestión de equipo" };
+        title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        header.AddChild(title);
+
+        _powerLabel = new Label();
+        header.AddChild(_powerLabel);
+
+        var back = new Button { Text = "Volver", FocusMode = FocusModeEnum.None };
+        back.Pressed += Close;
+        header.AddChild(back);
+
+        root.AddChild(new HSeparator());
+
+        // Cuerpo: izquierda (criatura + ranuras) | derecha (inventario)
+        var body = new HBoxContainer();
+        body.SizeFlagsVertical = SizeFlags.ExpandFill;
+        body.AddThemeConstantOverride("separation", 12);
+        root.AddChild(body);
+
+        var left = new VBoxContainer();
+        left.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        left.AddThemeConstantOverride("separation", 6);
+        body.AddChild(left);
+
+        left.AddChild(new Label { Text = "Criaturas" });
+        _rosterBox = new VBoxContainer();
+        left.AddChild(_rosterBox);
+
+        left.AddChild(new Label { Text = "Ranuras de anatomía" });
+        _slotsBox = new VBoxContainer();
+        _slotsBox.AddThemeConstantOverride("separation", 2);
+        left.AddChild(_slotsBox);
+
+        body.AddChild(new VSeparator());
+
+        var right = new VBoxContainer();
+        right.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        body.AddChild(right);
+
+        _invCountLabel = new Label { Text = "Inventario" };
+        right.AddChild(_invCountLabel);
+
+        var scroll = new ScrollContainer();
+        scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
+        scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+        right.AddChild(scroll);
+
+        _invBox = new VBoxContainer();
+        _invBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _invBox.AddThemeConstantOverride("separation", 2);
+        scroll.AddChild(_invBox);
+    }
+
+    private void RefreshAll()
+    {
+        var state = _session.State;
+        if (_selected >= state.Roster.Count)
+            _selected = 0;
+
+        _powerLabel.Text = $"Poder de equipo: {_session.TeamPower}";
+
+        RefreshRoster();
+        RefreshSlots();
+        RefreshInventory();
+    }
+
+    private void RefreshRoster()
+    {
+        ClearChildren(_rosterBox);
+        var roster = _session.State.Roster;
+        for (int i = 0; i < roster.Count; i++)
+        {
+            Creature c = roster[i];
+            int power = PowerRating.Of(new[] { c }, SetRegistry.Empty);
+            var btn = new Button
+            {
+                Text = $"{c.Name}  ·  poder {power}",
+                FocusMode = FocusModeEnum.None,
+                ToggleMode = true,
+                ButtonPressed = i == _selected,
+            };
+            int index = i;
+            btn.Pressed += () => { _selected = index; RefreshAll(); };
+            _rosterBox.AddChild(btn);
+        }
+    }
+
+    private void RefreshSlots()
+    {
+        ClearChildren(_slotsBox);
+        if (_session.State.Roster.Count == 0)
+            return;
+
+        Creature creature = _session.State.Roster[_selected];
+        foreach (AnatomySlot slot in Enum.GetValues<AnatomySlot>())
+        {
+            bool hasPart = creature.Equipped.TryGetValue(slot, out Part? part);
+            string detail = hasPart ? $"{part!.Family} [{Labels.Rarity(part.Rarity)}]" : "—";
+
+            var btn = new Button
+            {
+                Text = $"{Labels.Slot(slot)}: {detail}",
+                FocusMode = FocusModeEnum.None,
+                Disabled = !hasPart,
+                Alignment = HorizontalAlignment.Left,
+                TooltipText = hasPart ? "Clic para desequipar" : "Ranura vacía",
+            };
+            if (hasPart)
+            {
+                btn.Modulate = Labels.RarityColor(part!.Rarity);
+                AnatomySlot s = slot;
+                btn.Pressed += () => { _session.Unequip(_selected, s); RefreshAll(); };
+            }
+            _slotsBox.AddChild(btn);
+        }
+    }
+
+    private void RefreshInventory()
+    {
+        ClearChildren(_invBox);
+        var inventory = _session.State.Inventory;
+        _invCountLabel.Text = $"Inventario ({inventory.Count})  ·  clic para equipar";
+
+        foreach (Part part in inventory)
+        {
+            var btn = new Button
+            {
+                Text = $"{Labels.Slot(part.Slot)} {part.Family} [{Labels.Rarity(part.Rarity)}]\n{Labels.PartStats(part)}",
+                FocusMode = FocusModeEnum.None,
+                Alignment = HorizontalAlignment.Left,
+            };
+            btn.Modulate = Labels.RarityColor(part.Rarity);
+            btn.AddThemeFontSizeOverride("font_size", 11);
+
+            Part p = part;
+            btn.Pressed += () => { _session.Equip(_selected, p); RefreshAll(); };
+            _invBox.AddChild(btn);
+        }
+    }
+
+    private static void ClearChildren(Node box)
+    {
+        foreach (Node child in box.GetChildren())
+        {
+            box.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
+
+    private void Close()
+    {
+        Closed?.Invoke();
+        QueueFree();
+    }
+}

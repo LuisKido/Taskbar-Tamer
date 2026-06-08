@@ -14,19 +14,23 @@ namespace TaskbarTamer.Game;
 /// </summary>
 public partial class Main : Control
 {
-    private static readonly Vector2I CompactSize = new(340, 215);
+    private static readonly Vector2I CompactSize = new(340, 245);
     private static readonly Vector2I BattleSize = new(560, 400);
+    private static readonly Vector2I ManageSize = new(640, 470);
 
     private readonly GameSession _session = new();
     private bool _dragging;
     private Label _statusLabel = null!;
     private Label _offlineLabel = null!;
     private PackedScene _battleScene = null!;
+    private PackedScene _manageScene = null!;
     private Battle? _activeBattle;
+    private ManagementPanel? _activeManage;
 
     public override void _Ready()
     {
         _battleScene = GD.Load<PackedScene>("res://Scenes/Battle.tscn");
+        _manageScene = GD.Load<PackedScene>("res://Scenes/Manage.tscn");
         BuildUi();
 
         long now = (long)Time.GetUnixTimeFromSystem();
@@ -86,6 +90,11 @@ public partial class Main : Control
         battleButton.Pressed += OnBattlePressed;
         buttons.AddChild(battleButton);
 
+        var manageButton = new Button { Text = "🧬 Gestionar", FocusMode = FocusModeEnum.None };
+        manageButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        manageButton.Pressed += OnManagePressed;
+        vbox.AddChild(manageButton);
+
         var hint = new Label { Text = "Arrastra para mover · cierra y reabre: el progreso se guarda" };
         hint.Modulate = new Color(1, 1, 1, 0.45f);
         hint.AddThemeFontSizeOverride("font_size", 10);
@@ -117,6 +126,26 @@ public partial class Main : Control
     private void OnBattleClosed()
     {
         _activeBattle = null;
+        GetWindow().Size = CompactSize;
+        Refresh();
+    }
+
+    private void OnManagePressed()
+    {
+        if (_activeManage is not null)
+            return;
+
+        _activeManage = _manageScene.Instantiate<ManagementPanel>();
+        _activeManage.Closed += OnManageClosed;
+        AddChild(_activeManage);
+
+        GetWindow().Size = ManageSize;
+        _activeManage.Begin(_session);
+    }
+
+    private void OnManageClosed()
+    {
+        _activeManage = null;
         GetWindow().Size = CompactSize;
         Refresh();
     }
