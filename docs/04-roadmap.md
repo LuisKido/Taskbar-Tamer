@@ -6,8 +6,8 @@
 **Meta:** repo y solución listos para programar.
 - [x] Solución C# (`TaskbarTamer.sln`) con `core/` (lib) y `tests/` (xUnit). `core/` compila sin Godot.
 - [x] `.gitignore` (Godot + .NET), repo git inicializado, build + test verdes (2/2).
-- [ ] Proyecto Godot 4 (`game/`) — **diferido** hasta instalar Godot .NET; se crea desde el editor (genera sus `.csproj`).
-- [ ] Spike de consumo: **ventana compacta movible + medición de RAM/CPU en idle** (ver [arquitectura §5](02-arquitectura-tecnica.md#5-ventana-compacta-movible-y-consumo)). Requiere Godot instalado. *(Riesgo bajado: la ventana movible es nativa en Godot.)*
+- [x] Proyecto Godot 4 (`game/`, Godot 4.6.3 .NET) creado y enlazado a `core/`. Importa y compila en headless ✅.
+- [ ] Spike de consumo: medición de RAM/CPU en idle (ver [arquitectura §5](02-arquitectura-tecnica.md#5-ventana-compacta-movible-y-consumo)). *(Ventana movible ya funciona; falta medir consumo.)*
 
 ## Fase 1 — Núcleo de simulación (determinista)
 **Meta:** `Simular(setupA, setupB, semilla)` → log de eventos reproducible. *El corazón del juego.*
@@ -35,10 +35,13 @@
 
 ## Fase 3 — Fase activa (UI)
 **Meta:** el jugador gestiona y ve batallas.
+- [x] Ventana compacta, sin bordes y **movible** (arrastrar para reposicionar) — `Main.cs`.
+- [x] Integración Godot↔core: la pantalla usa `FarmingSimulator`/`PowerRating` reales.
+- [ ] Persistencia: leer/escribir `SaveData` en `user://` + progreso offline al abrir.
 - [ ] Panel principal: equipo, inventario, equipar partes.
 - [ ] Reproductor de batalla: anima el log de eventos del simulador (no recalcula).
 - [ ] Editor de formación (posicionamiento frontal/retaguardia).
-- [ ] Widget de barra de tareas funcional (resultado del spike de Fase 0).
+- [ ] Modo compacto ↔ expandido.
 
 ## Fase 4 — Crianza y progresión a largo plazo
 **Meta:** el bucle de optimización a lo largo del tiempo.
