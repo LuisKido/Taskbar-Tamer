@@ -161,7 +161,7 @@ public partial class Main : Control
         _statusLabel.Text =
             $"Equipo: {state.Roster.Count} criatura(s) · poder {_session.TeamPower}\n" +
             $"Bioma: {state.CurrentBiomeId}\n" +
-            $"Inventario: {state.Inventory.Count} partes";
+            $"Inventario: {state.Inventory.Count} partes · Esencia: {state.Essence}";
 
         if (_session.LastOfflineLoot > 0)
         {

@@ -130,9 +130,37 @@ public sealed class GameSession
         foreach (Part p in result.Loot)
             State.Inventory.Add(p);
 
+        State.Essence += result.XpGained; // la XP de farming se acumula como esencia
         State.NextId = ids.Peek;
         State.FarmingRngState = result.NewRngState;
         return result;
+    }
+
+    /// <summary>Coste actual de reclutar (escala con el tamaño del roster).</summary>
+    public long RecruitCost => _config.RecruitBaseCost * Math.Max(1, State.Roster.Count);
+
+    public bool CanRecruit => State.Essence >= RecruitCost;
+
+    /// <summary>Recluta una criatura nueva gastando esencia. Devuelve la criatura o null si no alcanza.</summary>
+    public Creature? Recruit()
+    {
+        long cost = RecruitCost;
+        if (State.Essence < cost)
+            return null;
+
+        State.Essence -= cost;
+
+        var ids = new IdAllocator(State.NextId);
+        long newId = ids.Next();
+        // Semilla derivada del estado actual; la criatura queda persistida, así que no
+        // necesitamos reproducibilidad tras recargar.
+        ulong seed = State.FarmingRngState + (ulong)newId * 2654435761UL;
+        Creature creature = CreatureFactory.Roll(newId, seed);
+
+        State.NextId = ids.Peek;
+        State.Roster.Add(creature);
+        Save();
+        return creature;
     }
 
     private SaveData NewGame(long nowUnix)

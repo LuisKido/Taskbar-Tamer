@@ -57,6 +57,12 @@ public sealed class GameConfig
     /// </summary>
     public int InheritanceBp { get; init; } = 5000;
 
+    /// <summary>
+    /// Coste base de esencia para reclutar una criatura. El coste real escala con el
+    /// tamaño del roster (coste = base × nº de criaturas).
+    /// </summary>
+    public long RecruitBaseCost { get; init; } = 500;
+
     public static readonly IReadOnlyDictionary<Rarity, int> DefaultRarityBp =
         new Dictionary<Rarity, int>
         {

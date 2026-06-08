@@ -27,6 +27,9 @@ public sealed class SaveData
     /// <summary>Marca de tiempo (Unix, segundos) de la última resolución de farming, para el progreso offline.</summary>
     public long LastFarmedUnixSeconds { get; set; }
 
+    /// <summary>Esencia genética acumulada (moneda para reclutar criaturas).</summary>
+    public long Essence { get; set; }
+
     /// <summary>Partes recolectadas.</summary>
     public List<Part> Inventory { get; set; } = new();
 
