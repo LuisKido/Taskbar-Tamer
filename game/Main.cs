@@ -1,4 +1,9 @@
 using Godot;
+using System;
+using TaskbarTamer.Core;
+using TaskbarTamer.Core.Data;
+using TaskbarTamer.Core.Model;
+using TaskbarTamer.Core.Simulation;
 
 namespace TaskbarTamer.Game;
 
@@ -9,13 +14,19 @@ namespace TaskbarTamer.Game;
 /// </summary>
 public partial class Main : Control
 {
+    private static readonly Vector2I CompactSize = new(340, 215);
+    private static readonly Vector2I BattleSize = new(560, 400);
+
     private readonly GameSession _session = new();
     private bool _dragging;
     private Label _statusLabel = null!;
     private Label _offlineLabel = null!;
+    private PackedScene _battleScene = null!;
+    private Battle? _activeBattle;
 
     public override void _Ready()
     {
+        _battleScene = GD.Load<PackedScene>("res://Scenes/Battle.tscn");
         BuildUi();
 
         long now = (long)Time.GetUnixTimeFromSystem();
@@ -62,9 +73,18 @@ public partial class Main : Control
         _offlineLabel.Modulate = new Color(0.6f, 0.9f, 0.6f);
         vbox.AddChild(_offlineLabel);
 
+        var buttons = new HBoxContainer();
+        vbox.AddChild(buttons);
+
         var farmButton = new Button { Text = "Farmear +1 h", FocusMode = FocusModeEnum.None };
+        farmButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         farmButton.Pressed += OnFarmPressed;
-        vbox.AddChild(farmButton);
+        buttons.AddChild(farmButton);
+
+        var battleButton = new Button { Text = "⚔ Batalla", FocusMode = FocusModeEnum.None };
+        battleButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        battleButton.Pressed += OnBattlePressed;
+        buttons.AddChild(battleButton);
 
         var hint = new Label { Text = "Arrastra para mover · cierra y reabre: el progreso se guarda" };
         hint.Modulate = new Color(1, 1, 1, 0.45f);
@@ -75,6 +95,29 @@ public partial class Main : Control
     private void OnFarmPressed()
     {
         _session.FarmFor(3600);
+        Refresh();
+    }
+
+    private void OnBattlePressed()
+    {
+        if (_activeBattle is not null || _session.State.Roster.Count == 0)
+            return;
+
+        var player = new Setup(_session.State.Roster, Array.Empty<Creature>());
+        Setup rival = Content.RivalSetup();
+
+        _activeBattle = _battleScene.Instantiate<Battle>();
+        _activeBattle.Closed += OnBattleClosed;
+        AddChild(_activeBattle);
+
+        GetWindow().Size = BattleSize;
+        _activeBattle.Begin(player, rival, seed: 2024, SetRegistry.Empty, GameConfig.Default);
+    }
+
+    private void OnBattleClosed()
+    {
+        _activeBattle = null;
+        GetWindow().Size = CompactSize;
         Refresh();
     }
 
