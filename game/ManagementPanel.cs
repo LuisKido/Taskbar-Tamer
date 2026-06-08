@@ -33,6 +33,11 @@ public partial class ManagementPanel : Control
 
     private void BuildUi()
     {
+        // Fondo opaco que tapa por completo el panel principal de detrás.
+        var backdrop = new ColorRect { Color = new Color(0.11f, 0.11f, 0.13f) };
+        backdrop.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(backdrop);
+
         var bg = new PanelContainer();
         bg.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(bg);

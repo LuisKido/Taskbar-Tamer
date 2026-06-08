@@ -24,6 +24,7 @@ public partial class Main : Control
     private Label _offlineLabel = null!;
     private PackedScene _battleScene = null!;
     private PackedScene _manageScene = null!;
+    private PanelContainer _mainPanel = null!;
     private Battle? _activeBattle;
     private ManagementPanel? _activeManage;
 
@@ -42,16 +43,16 @@ public partial class Main : Control
 
     private void BuildUi()
     {
-        var panel = new PanelContainer();
-        panel.SetAnchorsPreset(LayoutPreset.FullRect);
-        AddChild(panel);
+        _mainPanel = new PanelContainer();
+        _mainPanel.SetAnchorsPreset(LayoutPreset.FullRect);
+        AddChild(_mainPanel);
 
         var margin = new MarginContainer();
         margin.AddThemeConstantOverride("margin_left", 12);
         margin.AddThemeConstantOverride("margin_right", 12);
         margin.AddThemeConstantOverride("margin_top", 10);
         margin.AddThemeConstantOverride("margin_bottom", 10);
-        panel.AddChild(margin);
+        _mainPanel.AddChild(margin);
 
         var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 5);
@@ -119,6 +120,7 @@ public partial class Main : Control
         _activeBattle.Closed += OnBattleClosed;
         AddChild(_activeBattle);
 
+        _mainPanel.Visible = false;
         GetWindow().Size = BattleSize;
         _activeBattle.Begin(player, rival, seed: 2024, SetRegistry.Empty, GameConfig.Default);
     }
@@ -126,6 +128,7 @@ public partial class Main : Control
     private void OnBattleClosed()
     {
         _activeBattle = null;
+        _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
         Refresh();
     }
@@ -139,6 +142,7 @@ public partial class Main : Control
         _activeManage.Closed += OnManageClosed;
         AddChild(_activeManage);
 
+        _mainPanel.Visible = false;
         GetWindow().Size = ManageSize;
         _activeManage.Begin(_session);
     }
@@ -146,6 +150,7 @@ public partial class Main : Control
     private void OnManageClosed()
     {
         _activeManage = null;
+        _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
         Refresh();
     }
