@@ -14,10 +14,11 @@ namespace TaskbarTamer.Game;
 /// </summary>
 public partial class Main : Control
 {
-    private static readonly Vector2I CompactSize = new(340, 270);
+    private static readonly Vector2I CompactSize = new(340, 295);
     private static readonly Vector2I BattleSize = new(560, 400);
     private static readonly Vector2I ManageSize = new(680, 480);
     private static readonly Vector2I RecruitSize = new(380, 420);
+    private static readonly Vector2I FormationSize = new(460, 440);
 
     private readonly GameSession _session = new();
     private bool _dragging;
@@ -26,16 +27,19 @@ public partial class Main : Control
     private PackedScene _battleScene = null!;
     private PackedScene _manageScene = null!;
     private PackedScene _recruitScene = null!;
+    private PackedScene _formationScene = null!;
     private PanelContainer _mainPanel = null!;
     private Battle? _activeBattle;
     private ManagementPanel? _activeManage;
     private RecruitPanel? _activeRecruit;
+    private FormationPanel? _activeFormation;
 
     public override void _Ready()
     {
         _battleScene = GD.Load<PackedScene>("res://Scenes/Battle.tscn");
         _manageScene = GD.Load<PackedScene>("res://Scenes/Manage.tscn");
         _recruitScene = GD.Load<PackedScene>("res://Scenes/Recruit.tscn");
+        _formationScene = GD.Load<PackedScene>("res://Scenes/Formation.tscn");
         BuildUi();
 
         long now = (long)Time.GetUnixTimeFromSystem();
@@ -82,31 +86,35 @@ public partial class Main : Control
         _offlineLabel.Modulate = new Color(0.6f, 0.9f, 0.6f);
         vbox.AddChild(_offlineLabel);
 
-        var buttons = new HBoxContainer();
-        vbox.AddChild(buttons);
-
         var farmButton = new Button { Text = "Farmear +1 h", FocusMode = FocusModeEnum.None };
-        farmButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         farmButton.Pressed += OnFarmPressed;
-        buttons.AddChild(farmButton);
+        vbox.AddChild(farmButton);
 
-        var battleButton = new Button { Text = "⚔ Batalla", FocusMode = FocusModeEnum.None };
-        battleButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        battleButton.Pressed += OnBattlePressed;
-        buttons.AddChild(battleButton);
-
-        var buttons2 = new HBoxContainer();
-        vbox.AddChild(buttons2);
+        var rowManage = new HBoxContainer();
+        vbox.AddChild(rowManage);
 
         var manageButton = new Button { Text = "🧬 Gestionar", FocusMode = FocusModeEnum.None };
         manageButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         manageButton.Pressed += OnManagePressed;
-        buttons2.AddChild(manageButton);
+        rowManage.AddChild(manageButton);
 
         var recruitButton = new Button { Text = "➕ Reclutar", FocusMode = FocusModeEnum.None };
         recruitButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         recruitButton.Pressed += OnRecruitPressed;
-        buttons2.AddChild(recruitButton);
+        rowManage.AddChild(recruitButton);
+
+        var rowCombat = new HBoxContainer();
+        vbox.AddChild(rowCombat);
+
+        var formationButton = new Button { Text = "🛡 Formación", FocusMode = FocusModeEnum.None };
+        formationButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        formationButton.Pressed += OnFormationPressed;
+        rowCombat.AddChild(formationButton);
+
+        var battleButton = new Button { Text = "⚔ Batalla", FocusMode = FocusModeEnum.None };
+        battleButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        battleButton.Pressed += OnBattlePressed;
+        rowCombat.AddChild(battleButton);
 
         var hint = new Label { Text = "Arrastra para mover · cierra y reabre: el progreso se guarda" };
         hint.Modulate = new Color(1, 1, 1, 0.45f);
@@ -122,10 +130,15 @@ public partial class Main : Control
 
     private void OnBattlePressed()
     {
-        if (_activeBattle is not null || _session.State.Roster.Count == 0)
+        if (_activeBattle is not null)
             return;
 
-        var player = new Setup(_session.State.Roster, Array.Empty<Creature>());
+        Setup? player = _session.BuildPlayerSetup();
+        if (player is null)
+        {
+            _statusLabel.Text = "Coloca al menos una criatura en la formación (🛡) para luchar.";
+            return;
+        }
         Setup rival = Content.RivalSetup();
 
         _activeBattle = _battleScene.Instantiate<Battle>();
@@ -184,6 +197,28 @@ public partial class Main : Control
     private void OnRecruitClosed()
     {
         _activeRecruit = null;
+        _mainPanel.Visible = true;
+        GetWindow().Size = CompactSize;
+        Refresh();
+    }
+
+    private void OnFormationPressed()
+    {
+        if (_activeFormation is not null)
+            return;
+
+        _activeFormation = _formationScene.Instantiate<FormationPanel>();
+        _activeFormation.Closed += OnFormationClosed;
+        AddChild(_activeFormation);
+
+        _mainPanel.Visible = false;
+        GetWindow().Size = FormationSize;
+        _activeFormation.Begin(_session);
+    }
+
+    private void OnFormationClosed()
+    {
+        _activeFormation = null;
         _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
         Refresh();

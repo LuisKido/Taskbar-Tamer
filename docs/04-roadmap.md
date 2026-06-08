@@ -41,7 +41,7 @@
 - [x] Panel de gestión: roster, ranuras de anatomía por criatura, inventario, equipar/desequipar partes (con poder en vivo).
 - [x] Inventario agrupado por tipo (×N) + **fusión en la UI** (botón "Fusionar todo", cascada).
 - [x] Reclutamiento de criaturas: el farming da **esencia genética**; `CreatureFactory` genera criaturas nuevas (coste escalable). Roster multi-criatura.
-- [ ] Editor de formación (posicionamiento frontal/retaguardia) — ahora viable con varias criaturas.
+- [x] Editor de formación: coloca criaturas en frontal/retaguardia/banca (máx. por línea); la batalla usa la formación guardada.
 - [x] Reproductor de batalla: anima el log de eventos del simulador (barras de vida, golpes, críticos, veneno, K.O., desenlace). No recalcula.
 - [ ] Modo compacto ↔ expandido.
 

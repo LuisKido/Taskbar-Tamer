@@ -35,4 +35,10 @@ public sealed class SaveData
 
     /// <summary>Criaturas del jugador.</summary>
     public List<Creature> Roster { get; set; } = new();
+
+    /// <summary>Ids de criaturas en la línea frontal (en orden). Subconjunto del roster.</summary>
+    public List<long> FrontLine { get; set; } = new();
+
+    /// <summary>Ids de criaturas en la retaguardia (en orden). Subconjunto del roster.</summary>
+    public List<long> BackLine { get; set; } = new();
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using TaskbarTamer.Core;
 using TaskbarTamer.Core.Data;
 using TaskbarTamer.Core.Idle;
@@ -7,6 +8,14 @@ using TaskbarTamer.Core.Persistence;
 using TaskbarTamer.Core.Simulation;
 
 namespace TaskbarTamer.Game;
+
+/// <summary>Zona de combate de una criatura.</summary>
+public enum FormationZone
+{
+    Bench,
+    Front,
+    Back,
+}
 
 /// <summary>
 /// Estado de la partida en memoria + orquestación con core/. Carga/crea el save,
@@ -37,6 +46,23 @@ public sealed class GameSession
         else
         {
             State = loaded;
+        }
+
+        EnsureFormation();
+    }
+
+    // Migración/arranque: si no hay formación pero hay criaturas, coloca las primeras
+    // en la línea frontal (hasta el máximo) para que pueda haber batalla.
+    private void EnsureFormation()
+    {
+        if (State.FrontLine.Count > 0 || State.BackLine.Count > 0)
+            return;
+
+        foreach (Creature c in State.Roster)
+        {
+            if (State.FrontLine.Count >= _config.MaxLineSize)
+                break;
+            State.FrontLine.Add(c.Id);
         }
     }
 
@@ -116,6 +142,55 @@ public sealed class GameSession
         return fusions;
     }
 
+    // ---------- Formación ----------
+
+    public int MaxLine => _config.MaxLineSize;
+    public int FrontCount => State.FrontLine.Count;
+    public int BackCount => State.BackLine.Count;
+
+    public FormationZone ZoneOf(long creatureId)
+    {
+        if (State.FrontLine.Contains(creatureId)) return FormationZone.Front;
+        if (State.BackLine.Contains(creatureId)) return FormationZone.Back;
+        return FormationZone.Bench;
+    }
+
+    public void PlaceFront(long creatureId)
+    {
+        if (ZoneOf(creatureId) == FormationZone.Front || State.FrontLine.Count >= _config.MaxLineSize)
+            return;
+        State.BackLine.Remove(creatureId);
+        State.FrontLine.Add(creatureId);
+        Save();
+    }
+
+    public void PlaceBack(long creatureId)
+    {
+        if (ZoneOf(creatureId) == FormationZone.Back || State.BackLine.Count >= _config.MaxLineSize)
+            return;
+        State.FrontLine.Remove(creatureId);
+        State.BackLine.Add(creatureId);
+        Save();
+    }
+
+    public void Bench(long creatureId)
+    {
+        bool changed = State.FrontLine.Remove(creatureId) | State.BackLine.Remove(creatureId);
+        if (changed)
+            Save();
+    }
+
+    /// <summary>Construye el <see cref="Setup"/> del jugador a partir de la formación guardada, o null si está vacía.</summary>
+    public Setup? BuildPlayerSetup()
+    {
+        var byId = State.Roster.ToDictionary(c => c.Id);
+        var front = State.FrontLine.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+        var back = State.BackLine.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+        if (front.Count == 0 && back.Count == 0)
+            return null;
+        return new Setup(front, back);
+    }
+
     public void Save() => SaveStore.Save(State);
 
     // Resuelve farming sobre el bioma actual y vuelca el botín al estado.
@@ -175,6 +250,7 @@ public sealed class GameSession
             CurrentBiomeId = Content.DefaultBiomeId,
             LastFarmedUnixSeconds = nowUnix,
             Roster = { starter },
+            FrontLine = { starter.Id },
         };
     }
 }

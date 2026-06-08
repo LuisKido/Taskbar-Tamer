@@ -63,6 +63,9 @@ public sealed class GameConfig
     /// </summary>
     public long RecruitBaseCost { get; init; } = 500;
 
+    /// <summary>Máximo de criaturas por línea de combate (frontal y retaguardia).</summary>
+    public int MaxLineSize { get; init; } = 3;
+
     public static readonly IReadOnlyDictionary<Rarity, int> DefaultRarityBp =
         new Dictionary<Rarity, int>
         {
