@@ -59,6 +59,13 @@ public sealed class GameSession
     /// <summary>Avanza la fase de la arena. No persiste (la arena guarda con throttle).</summary>
     public void AdvanceStage() => State.Stage++;
 
+    /// <summary>Retrocede al inicio del mapa actual (banda de 10 fases) tras una derrota.</summary>
+    public void RetreatToMapStart()
+    {
+        int band = (State.Stage - 1) / 10;
+        State.Stage = Math.Max(1, band * 10 + 1);
+    }
+
     // Migración/arranque: si no hay formación pero hay criaturas, coloca las primeras
     // en la línea frontal (hasta el máximo) para que pueda haber batalla.
     private void EnsureFormation()

@@ -44,6 +44,11 @@
 - [x] Editor de formación: coloca criaturas en frontal/retaguardia/banca (máx. por línea); la batalla usa la formación guardada.
 - [x] Reproductor de batalla: anima el log de eventos del simulador (barras de vida, golpes, críticos, veneno, K.O., desenlace). No recalcula.
 - [x] **Arena en vivo**: auto-battler visual continuo (criaturas vs hordas) que avanza de Fase mientras el juego está abierto; daño escala con el poder del equipo. + heartbeat de farming en vivo (loot/esencia suben mientras lo ves).
+  - [x] Combate por rol según formación (frontal = melee con movimiento, retaguardia = a distancia).
+  - [x] Números de daño flotantes estilo Ragnarok + críticos.
+  - [x] Barras de vida en aliados; los enemigos contraatacan; **derrota** → retirada al inicio del mapa.
+  - [x] **Jefes cada 10 fases** + **3 mapas temáticos** que rotan; progresión más difícil.
+  - [x] Efectos: destellos al golpear, anillos de impacto, poof de muerte, banners, screen shake.
 - [ ] Modo compacto ↔ expandido.
 
 ## Fase 4 — Crianza y progresión a largo plazo
