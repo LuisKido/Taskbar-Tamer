@@ -1,0 +1,21 @@
+# Normaliza finales de línea: el repo guarda LF; en checkout Windows usa CRLF.
+* text=auto
+
+# Archivos de texto del proyecto (LF en el repo)
+*.cs    text
+*.csproj text
+*.sln   text
+*.md    text
+*.json  text
+*.gd    text
+*.tres  text eol=lf
+*.tscn  text eol=lf
+*.godot text eol=lf
+
+# Binarios: nunca tocar finales de línea
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.ogg   binary
+*.wav   binary
+*.dll   binary
