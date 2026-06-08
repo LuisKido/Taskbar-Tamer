@@ -14,7 +14,7 @@ namespace TaskbarTamer.Game;
 /// </summary>
 public partial class Main : Control
 {
-    private static readonly Vector2I CompactSize = new(340, 295);
+    private static readonly Vector2I CompactSize = new(360, 430);
     private static readonly Vector2I BattleSize = new(560, 400);
     private static readonly Vector2I ManageSize = new(680, 480);
     private static readonly Vector2I RecruitSize = new(380, 420);
@@ -24,6 +24,7 @@ public partial class Main : Control
     private bool _dragging;
     private Label _statusLabel = null!;
     private Label _offlineLabel = null!;
+    private ArenaView _arena = null!;
     private PackedScene _battleScene = null!;
     private PackedScene _manageScene = null!;
     private PackedScene _recruitScene = null!;
@@ -46,7 +47,22 @@ public partial class Main : Control
         _session.LoadOrCreate(now);
         _session.ApplyOfflineProgress(now);
 
+        _arena.Begin(_session);
+
+        // Heartbeat de farming en vivo: cada 10 s acumula el botín del tiempo abierto.
+        var heartbeat = new Timer { WaitTime = 10, Autostart = true, OneShot = false };
+        AddChild(heartbeat);
+        heartbeat.Timeout += OnFarmingHeartbeat;
+
         Refresh();
+    }
+
+    private void OnFarmingHeartbeat()
+    {
+        long now = (long)Time.GetUnixTimeFromSystem();
+        _session.TickLiveFarming(now);
+        if (_activeBattle is null && _activeManage is null && _activeRecruit is null && _activeFormation is null)
+            Refresh();
     }
 
     private void BuildUi()
@@ -85,6 +101,11 @@ public partial class Main : Control
         _offlineLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _offlineLabel.Modulate = new Color(0.6f, 0.9f, 0.6f);
         vbox.AddChild(_offlineLabel);
+
+        _arena = new ArenaView();
+        _arena.SizeFlagsVertical = SizeFlags.ExpandFill;
+        _arena.StageAdvanced += Refresh;
+        vbox.AddChild(_arena);
 
         var farmButton = new Button { Text = "Farmear +1 h", FocusMode = FocusModeEnum.None };
         farmButton.Pressed += OnFarmPressed;
@@ -228,8 +249,7 @@ public partial class Main : Control
     {
         var state = _session.State;
         _statusLabel.Text =
-            $"Equipo: {state.Roster.Count} criatura(s) · poder {_session.TeamPower}\n" +
-            $"Bioma: {state.CurrentBiomeId}\n" +
+            $"Fase {_session.Stage}  ·  {state.Roster.Count} criatura(s) · poder {_session.TeamPower}\n" +
             $"Inventario: {state.Inventory.Count} partes · Esencia: {state.Essence}";
 
         if (_session.LastOfflineLoot > 0)

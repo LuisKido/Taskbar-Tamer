@@ -48,8 +48,16 @@ public sealed class GameSession
             State = loaded;
         }
 
+        if (State.Stage < 1)
+            State.Stage = 1;
+
         EnsureFormation();
     }
+
+    public int Stage => State.Stage;
+
+    /// <summary>Avanza la fase de la arena. No persiste (la arena guarda con throttle).</summary>
+    public void AdvanceStage() => State.Stage++;
 
     // Migración/arranque: si no hay formación pero hay criaturas, coloca las primeras
     // en la línea frontal (hasta el máximo) para que pueda haber batalla.
@@ -69,15 +77,43 @@ public sealed class GameSession
     /// <summary>Resuelve el tiempo transcurrido desde la última sesión y añade el botín.</summary>
     public void ApplyOfflineProgress(long nowUnix)
     {
-        long elapsed = Math.Max(0, nowUnix - State.LastFarmedUnixSeconds);
-        FarmingResult result = ResolveFarming(elapsed);
+        FarmingResult result = ResolveAndAdvance(nowUnix, applyOfflineCap: true);
 
         LastOfflineLoot = result.Loot.Count;
         LastOfflineXp = result.XpGained;
-        LastOfflineSeconds = elapsed;
+        LastOfflineSeconds = (long)result.Encounters * _config.EncounterIntervalSeconds;
 
-        State.LastFarmedUnixSeconds = nowUnix;
         SaveStore.Save(State);
+    }
+
+    /// <summary>
+    /// Tick de farming en vivo (mientras el juego está abierto): resuelve el tiempo
+    /// transcurrido desde el último tick y añade el botín. Devuelve cuántas partes cayeron.
+    /// </summary>
+    public int TickLiveFarming(long nowUnix)
+    {
+        FarmingResult result = ResolveAndAdvance(nowUnix, applyOfflineCap: false);
+        if (result.Encounters > 0)
+            Save();
+        return result.Loot.Count;
+    }
+
+    // Resuelve el farming acumulado y avanza la marca de tiempo SOLO por el tiempo
+    // realmente consumido (encuentros completos), conservando el resto para el próximo tick.
+    private FarmingResult ResolveAndAdvance(long nowUnix, bool applyOfflineCap)
+    {
+        long elapsed = Math.Max(0, nowUnix - State.LastFarmedUnixSeconds);
+        long forResolve = applyOfflineCap ? Math.Min(elapsed, _config.OfflineCapSeconds) : elapsed;
+
+        FarmingResult result = ResolveFarming(forResolve);
+        long consumed = (long)result.Encounters * _config.EncounterIntervalSeconds;
+
+        if (applyOfflineCap && elapsed > _config.OfflineCapSeconds)
+            State.LastFarmedUnixSeconds = nowUnix;     // descarta el exceso sobre el tope offline
+        else
+            State.LastFarmedUnixSeconds += consumed;   // conserva el tiempo sobrante
+
+        return result;
     }
 
     /// <summary>Farmea un periodo concreto bajo demanda (botón de prueba). Persiste el resultado.</summary>

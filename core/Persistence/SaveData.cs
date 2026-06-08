@@ -30,6 +30,9 @@ public sealed class SaveData
     /// <summary>Esencia genética acumulada (moneda para reclutar criaturas).</summary>
     public long Essence { get; set; }
 
+    /// <summary>Fase alcanzada en la arena (progreso de oleadas).</summary>
+    public int Stage { get; set; } = 1;
+
     /// <summary>Partes recolectadas.</summary>
     public List<Part> Inventory { get; set; } = new();
 
