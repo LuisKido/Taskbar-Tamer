@@ -4,9 +4,10 @@
 
 ## Fase 0 — Fundaciones (esqueleto)
 **Meta:** repo y solución listos para programar.
-- [ ] Proyecto Godot 4 + solución C# con `core/`, `game/`, `tests/`.
-- [ ] `.gitignore` (Godot + .NET), `core/` compila sin Godot, xUnit corre.
-- [ ] Spike de riesgo: **widget de barra de tareas + tray + consumo en idle** (ver [arquitectura §5](02-arquitectura-tecnica.md#5-widget-de-barra-de-tareas-y-consumo-riesgo-a-validar)). Decidir Opción A vs B con datos reales de RAM/CPU.
+- [x] Solución C# (`TaskbarTamer.sln`) con `core/` (lib) y `tests/` (xUnit). `core/` compila sin Godot.
+- [x] `.gitignore` (Godot + .NET), repo git inicializado, build + test verdes (2/2).
+- [ ] Proyecto Godot 4 (`game/`) — **diferido** hasta instalar Godot .NET; se crea desde el editor (genera sus `.csproj`).
+- [ ] Spike de consumo: **ventana compacta movible + medición de RAM/CPU en idle** (ver [arquitectura §5](02-arquitectura-tecnica.md#5-ventana-compacta-movible-y-consumo)). Requiere Godot instalado. *(Riesgo bajado: la ventana movible es nativa en Godot.)*
 
 ## Fase 1 — Núcleo de simulación (determinista)
 **Meta:** `Simular(setupA, setupB, semilla)` → log de eventos reproducible. *El corazón del juego.*
@@ -18,10 +19,15 @@
 
 ## Fase 2 — Loop idle + inventario
 **Meta:** farming por tiempo que genera loot real.
-- [ ] Biomas, tablas de loot, tasa de progreso por equipo.
-- [ ] Resolución por delta de tiempo + progreso offline.
-- [ ] Inventario y fusión de partes.
-- [ ] Persistencia local (`user://`).
+- [x] Modelo mínimo de partes: `Stats`, `AnatomySlot`, `Part`, `PartFactory` (stats escaladas por rareza).
+- [x] `DeterministicRng` (splitmix64) reanudable por estado.
+- [x] Biomas + tablas de loot ponderadas; gate por poder de equipo.
+- [x] `FarmingSimulator`: resolución por delta de tiempo + tope de progreso offline (función pura, determinista).
+- [x] `Inventory` + fusión (3 iguales → rareza superior) con cascada (`AutoFuse`).
+- [x] 27 tests verdes (determinismo, pesos, reanudación por tramos, cascada de fusión).
+- [ ] Persistencia local (`user://`) — **pendiente**: requiere el cliente Godot (la serialización del estado se puede preparar en `core/` antes).
+
+> Nota: se abstrae la fuerza del equipo como `TeamPower` (int). El cálculo real de `TeamPower` a partir de criaturas+stats llega con la Fase 1 (simulador).
 
 ## Fase 3 — Fase activa (UI)
 **Meta:** el jugador gestiona y ve batallas.
@@ -55,7 +61,7 @@
 
 | Riesgo | Fase | Mitigación |
 |--------|------|-----------|
-| Widget de taskbar/tray no nativo en Godot | 0 | Spike temprano; fallback a proceso ayudante nativo (Opción B). |
+| ~~Widget de taskbar/tray no nativo~~ → ventana movible | 0 | **Resuelto por diseño:** app es una ventana compacta movible (nativo en Godot). Tray queda como opcional tardío. |
 | Consumo en idle demasiado alto | 0 | Medir pronto; bajar FPS/render al minimizar; liberar escenas. |
 | Determinismo cliente≠servidor | 1 | Aritmética entera, RNG sembrado, tests golden. |
 | Balance del meta competitivo | 4–5 | Datos de telemetría + temporadas que ajustan reglas. |

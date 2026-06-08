@@ -1,6 +1,6 @@
 # Taskbar Tamer
 
-**Idle / Auto-Battler Táctico de Colección de Criaturas** para PC (Steam), operando como un widget de barra de tareas de bajo consumo.
+**Idle / Auto-Battler Táctico de Colección de Criaturas** para PC (Steam), operando como una app compacta de bajo consumo que el usuario coloca donde quiera en su escritorio.
 
 Gestionas un equipo de criaturas que farmean en segundo plano mientras usas tu PC. Recolectas **mutaciones genéticas y partes biológicas** para equipar a tus bestias, armas la composición perfecta y escalas en ligas competitivas de batallas automatizadas asíncronas.
 
@@ -28,4 +28,4 @@ Gestionas un equipo de criaturas que farmean en segundo plano mientras usas tu P
 
 ## Principio rector
 
-> **Bajo consumo.** El juego corre 24/7 minimizado en la barra de tareas. Cada decisión técnica se mide contra el coste de RAM/CPU en estado inactivo. El farming idle NO simula combate en tiempo real: acumula tiempo y resuelve por tablas de botín.
+> **Bajo consumo.** El juego corre 24/7 como una ventana compacta que el usuario arrastra y coloca donde quiera (esquina, segundo monitor, etc.). Cada decisión técnica se mide contra el coste de RAM/CPU en estado inactivo. El farming idle NO simula combate en tiempo real: acumula tiempo y resuelve por tablas de botín.

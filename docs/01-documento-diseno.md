@@ -12,8 +12,8 @@ Gestionas un equipo de criaturas en segundo plano mientras usas tu PC. En lugar 
 
 ## 2. Bucle de Juego
 
-### Fase Inactiva — Farming en la barra de tareas
-Las criaturas recorren biomas de forma autónoma, enfrentando enemigos y recolectando experiencia.
+### Fase Inactiva — Farming en segundo plano
+Las criaturas recorren biomas de forma autónoma, enfrentando enemigos y recolectando experiencia. La app vive como una **ventana compacta y movible** que el usuario coloca donde quiera (no está anclada a la barra de tareas).
 
 - **Botín (Loot):** recolectan equipo biológico de distintas rarezas (Común → Legendario) que va a un inventario.
 - **Bajo consumo:** esta fase **no** simula combate en tiempo real. Acumula tiempo transcurrido y resuelve recompensas por tablas de probabilidad (ver [arquitectura §4](02-arquitectura-tecnica.md#4-fase-idle-progreso-por-tiempo)).

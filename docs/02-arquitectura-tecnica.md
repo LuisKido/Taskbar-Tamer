@@ -12,7 +12,7 @@
 | 4 | **Determinismo por aritmética entera + RNG sembrado** | Floats no son reproducibles entre máquinas/CPU. Cliente y servidor deben coincidir bit a bit. | Floats con física del motor. |
 | 5 | **Idle por acumulación de tiempo, no simulación en vivo** | Bajo consumo: nada corre cada frame en segundo plano. | Tick de combate real en idle (mata el objetivo de consumo). |
 
-> ⚠️ **Riesgo principal a validar pronto (spike):** Godot no ofrece de forma nativa un *widget acoplado a la barra de tareas* ni un icono de bandeja del sistema. Ver §5. Es lo primero a prototipar técnicamente antes de comprometernos.
+> ℹ️ **Decisión de diseño:** la app NO se ancla a la barra de tareas. Es una **ventana compacta, sin bordes, movible y always-on-top** que el usuario coloca donde quiera. Esto es nativo en Godot 4 y elimina el que era el riesgo técnico #1. Ver §5.
 
 ## 2. Estructura de la solución
 
@@ -61,17 +61,20 @@ Para garantizar bajo consumo, el farming **no** ejecuta combates frame a frame.
 - **Frecuencia de tick en background:** baja (ej. cada 30–60 s) solo para actualizar el widget; el cálculo real es por delta de tiempo, así que dormir más tiempo no pierde progreso.
 - **Progreso offline:** al lanzar el juego se resuelve todo el tiempo transcurrido desde el cierre (con tope configurable).
 
-## 5. Widget de barra de tareas y consumo (riesgo a validar)
+## 5. Ventana compacta movible y consumo
 
-Godot no tiene API nativa de "widget de taskbar" ni de system tray. Plan:
+La app es una **ventana de overlay** que el usuario coloca libremente, no un widget acoplado a la barra de tareas. Esto usa solo APIs nativas de Godot 4:
 
-- **Opción A (recomendada a investigar primero):** ventana Godot **borderless, always-on-top, sin barra de tareas propia**, anclada cerca de la bandeja del sistema, mostrando estado compacto (criaturas, loot reciente). + un **icono de bandeja** mediante un *GDExtension* nativo (C++/C#) o un proceso ayudante nativo ligero.
-- **Opción B:** proceso ayudante nativo en C#/.NET (WinForms `NotifyIcon` o Win32) que vive en la bandeja y solo lanza/mensajea con el proceso Godot pesado, que permanece **suspendido/oculto** hasta abrir la fase activa.
+- **Ventana sin bordes y movible:** `Window.Borderless = true` + arrastre manual (capturar el drag en una barra de agarre y mover `Window.Position`). El usuario la coloca donde quiera: una esquina, un segundo monitor, etc.
+- **Always-on-top opcional:** `Window.AlwaysOnTop = true` (toggle por el usuario) para que no se pierda detrás de otras ventanas.
+- **Modo compacto vs. expandido:** vista mínima (criaturas + loot reciente) que se expande al panel completo de gestión al hacer clic.
+- **Recordar posición:** se persiste `Window.Position`/tamaño en el save para restaurar dónde la dejó el usuario.
+- **(Opcional, fase tardía):** icono de bandeja del sistema para minimizar del todo, vía GDExtension o proceso ayudante. NO es necesario para el MVP.
 
 Medidas de bajo consumo en idle:
-- Bajar `Engine.MaxFps` y `Engine.TargetFps` a 1–5 cuando está minimizado; pausar el render.
+- Bajar `Engine.MaxFps` a 1–5 (o pausar el render con `RenderingServer`) cuando está en modo compacto/sin foco.
 - Liberar escenas pesadas (batalla, inventario) cuando no están visibles.
-- Objetivo orientativo: **< 80–100 MB RAM y ~0% CPU** en estado inactivo. A medir en el spike.
+- Objetivo orientativo: **< 80–100 MB RAM y ~0% CPU** en estado inactivo. A medir cuando exista el cliente Godot.
 
 ## 6. Persistencia
 
