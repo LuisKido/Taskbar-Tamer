@@ -14,9 +14,10 @@ namespace TaskbarTamer.Game;
 /// </summary>
 public partial class Main : Control
 {
-    private static readonly Vector2I CompactSize = new(340, 245);
+    private static readonly Vector2I CompactSize = new(340, 270);
     private static readonly Vector2I BattleSize = new(560, 400);
-    private static readonly Vector2I ManageSize = new(640, 470);
+    private static readonly Vector2I ManageSize = new(680, 480);
+    private static readonly Vector2I RecruitSize = new(380, 420);
 
     private readonly GameSession _session = new();
     private bool _dragging;
@@ -24,14 +25,17 @@ public partial class Main : Control
     private Label _offlineLabel = null!;
     private PackedScene _battleScene = null!;
     private PackedScene _manageScene = null!;
+    private PackedScene _recruitScene = null!;
     private PanelContainer _mainPanel = null!;
     private Battle? _activeBattle;
     private ManagementPanel? _activeManage;
+    private RecruitPanel? _activeRecruit;
 
     public override void _Ready()
     {
         _battleScene = GD.Load<PackedScene>("res://Scenes/Battle.tscn");
         _manageScene = GD.Load<PackedScene>("res://Scenes/Manage.tscn");
+        _recruitScene = GD.Load<PackedScene>("res://Scenes/Recruit.tscn");
         BuildUi();
 
         long now = (long)Time.GetUnixTimeFromSystem();
@@ -91,10 +95,18 @@ public partial class Main : Control
         battleButton.Pressed += OnBattlePressed;
         buttons.AddChild(battleButton);
 
+        var buttons2 = new HBoxContainer();
+        vbox.AddChild(buttons2);
+
         var manageButton = new Button { Text = "🧬 Gestionar", FocusMode = FocusModeEnum.None };
         manageButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         manageButton.Pressed += OnManagePressed;
-        vbox.AddChild(manageButton);
+        buttons2.AddChild(manageButton);
+
+        var recruitButton = new Button { Text = "➕ Reclutar", FocusMode = FocusModeEnum.None };
+        recruitButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        recruitButton.Pressed += OnRecruitPressed;
+        buttons2.AddChild(recruitButton);
 
         var hint = new Label { Text = "Arrastra para mover · cierra y reabre: el progreso se guarda" };
         hint.Modulate = new Color(1, 1, 1, 0.45f);
@@ -150,6 +162,28 @@ public partial class Main : Control
     private void OnManageClosed()
     {
         _activeManage = null;
+        _mainPanel.Visible = true;
+        GetWindow().Size = CompactSize;
+        Refresh();
+    }
+
+    private void OnRecruitPressed()
+    {
+        if (_activeRecruit is not null)
+            return;
+
+        _activeRecruit = _recruitScene.Instantiate<RecruitPanel>();
+        _activeRecruit.Closed += OnRecruitClosed;
+        AddChild(_activeRecruit);
+
+        _mainPanel.Visible = false;
+        GetWindow().Size = RecruitSize;
+        _activeRecruit.Begin(_session);
+    }
+
+    private void OnRecruitClosed()
+    {
+        _activeRecruit = null;
         _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
         Refresh();

@@ -22,7 +22,6 @@ public partial class ManagementPanel : Control
 
     private Label _powerLabel = null!;
     private VBoxContainer _rosterBox = null!;
-    private Button _recruitButton = null!;
     private VBoxContainer _slotsBox = null!;
     private Label _invCountLabel = null!;
     private VBoxContainer _invBox = null!;
@@ -87,11 +86,6 @@ public partial class ManagementPanel : Control
         _rosterBox = new VBoxContainer();
         left.AddChild(_rosterBox);
 
-        _recruitButton = new Button { FocusMode = FocusModeEnum.None };
-        _recruitButton.TooltipText = "Gasta esencia genética para reclutar una criatura nueva";
-        _recruitButton.Pressed += OnRecruitPressed;
-        left.AddChild(_recruitButton);
-
         left.AddChild(new Label { Text = "Ranuras de anatomía" });
         _slotsBox = new VBoxContainer();
         _slotsBox.AddThemeConstantOverride("separation", 2);
@@ -132,22 +126,11 @@ public partial class ManagementPanel : Control
         if (_selected >= state.Roster.Count)
             _selected = 0;
 
-        _powerLabel.Text = $"Poder: {_session.TeamPower}   ·   Esencia: {state.Essence}";
-
-        _recruitButton.Text = $"➕ Reclutar  ({_session.RecruitCost} esencia)";
-        _recruitButton.Disabled = !_session.CanRecruit;
+        _powerLabel.Text = $"Poder de equipo: {_session.TeamPower}";
 
         RefreshRoster();
         RefreshSlots();
         RefreshInventory();
-    }
-
-    private void OnRecruitPressed()
-    {
-        Creature? recruited = _session.Recruit();
-        if (recruited is not null)
-            _selected = _session.State.Roster.Count - 1; // seleccionar la nueva
-        RefreshAll();
     }
 
     private void RefreshRoster()
@@ -164,6 +147,7 @@ public partial class ManagementPanel : Control
                 FocusMode = FocusModeEnum.None,
                 ToggleMode = true,
                 ButtonPressed = i == _selected,
+                ClipText = true,
             };
             int index = i;
             btn.Pressed += () => { _selected = index; RefreshAll(); };
@@ -189,6 +173,7 @@ public partial class ManagementPanel : Control
                 FocusMode = FocusModeEnum.None,
                 Disabled = !hasPart,
                 Alignment = HorizontalAlignment.Left,
+                ClipText = true,
                 TooltipText = hasPart ? "Clic para desequipar" : "Ranura vacía",
             };
             if (hasPart)
@@ -251,6 +236,7 @@ public partial class ManagementPanel : Control
                 Text = $"{Labels.Slot(kind.Slot)} {kind.Family} [{Labels.Rarity(kind.Rarity)}] ×{count}{mark}\n{Labels.PartStats(rep)}",
                 FocusMode = FocusModeEnum.None,
                 Alignment = HorizontalAlignment.Left,
+                ClipText = true,
                 TooltipText = "Clic para equipar una",
             };
             btn.Modulate = Labels.RarityColor(kind.Rarity);
