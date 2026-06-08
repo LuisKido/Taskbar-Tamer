@@ -57,6 +57,8 @@ public partial class ArenaView : Control
     private sealed class PlayerUnit
     {
         public Vector2 Pos;
+        public Vector2 Facing = Vector2.Right;
+        public int Order;
         public Role Role;
         public int LaneIndex;
         public int LaneCount;
@@ -75,6 +77,7 @@ public partial class ArenaView : Control
     private sealed class Enemy
     {
         public Vector2 Pos;
+        public Vector2 Facing = Vector2.Left;
         public float Hp;
         public float MaxHp;
         public float Radius;
@@ -182,6 +185,8 @@ public partial class ArenaView : Control
         if (_units.Count == 0 && _session.State.Roster.Count > 0)
             _units.Add(MakeUnit(_session.State.Roster[0], Role.Melee, 0, 1));
 
+        for (int i = 0; i < _units.Count; i++)
+            _units[i].Order = i;
         foreach (PlayerUnit u in _units)
             u.Pos = HomeFor(u);
     }
@@ -218,11 +223,30 @@ public partial class ArenaView : Control
         return DefaultShotColor;
     }
 
+    // Las criaturas se agrupan en el centro de la arena (en columna vertical). Las melee
+    // salen a interceptar y vuelven; las de distancia se quedan aquí disparando.
     private Vector2 HomeFor(PlayerUnit u)
     {
+        float w = Math.Max(Size.X, 200f);
         float h = Math.Max(Size.Y, 100f);
-        float x = u.Role == Role.Ranged ? RangedX : MeleeX;
-        return new Vector2(x, h * (u.LaneIndex + 1) / (u.LaneCount + 1));
+        int n = Math.Max(1, _units.Count);
+        float spacing = Math.Min(22f, (h - 26f) / n);
+        float cx = w * 0.45f;
+        float cy = h * 0.5f + (u.Order - (n - 1) / 2f) * spacing;
+        return new Vector2(cx, cy);
+    }
+
+    // Punto de aparición en un borde aleatorio (los enemigos llegan de distintos lados).
+    private Vector2 RandomEdgeSpawn(float w, float h)
+    {
+        int side = (int)(GD.Randf() * 4f) % 4;
+        return side switch
+        {
+            0 => new Vector2(-12f, GD.Randf() * h),
+            1 => new Vector2(w + 12f, GD.Randf() * h),
+            2 => new Vector2(GD.Randf() * w, -12f),
+            _ => new Vector2(GD.Randf() * w, h + 12f),
+        };
     }
 
     private void SpawnWave()
@@ -237,7 +261,7 @@ public partial class ArenaView : Control
             float bossHp = BaseEnemyHp * (10f + stage * 1.6f);
             _enemies.Add(new Enemy
             {
-                Pos = new Vector2(w - 34f, h / 2f),
+                Pos = new Vector2(w + 20f, h / 2f),
                 Hp = bossHp,
                 MaxHp = bossHp,
                 Radius = 22f,
@@ -255,7 +279,7 @@ public partial class ArenaView : Control
         {
             _enemies.Add(new Enemy
             {
-                Pos = new Vector2(w - 14f + i * 18f + GD.Randf() * 16f, 16f + GD.Randf() * (h - 32f)),
+                Pos = RandomEdgeSpawn(w, h),
                 Hp = hp,
                 MaxHp = hp,
                 Radius = 8f + GD.Randf() * 3f,
@@ -344,6 +368,8 @@ public partial class ArenaView : Control
 
             Vector2 home = HomeFor(u);
             Enemy? target = NearestEnemy(u.Pos);
+            if (target is not null)
+                u.Facing = Dir(u.Pos, target.Pos);
 
             if (u.Role == Role.Ranged)
             {
@@ -361,6 +387,7 @@ public partial class ArenaView : Control
 
             if (target is null)
             {
+                u.Facing = Dir(u.Pos, home);
                 u.Pos = u.Pos.MoveToward(home, MeleeSpeed * dt);
                 continue;
             }
@@ -392,6 +419,7 @@ public partial class ArenaView : Control
             PlayerUnit? target = NearestAlivePlayer(e.Pos);
             if (target is null)
                 continue;
+            e.Facing = Dir(e.Pos, target.Pos);
 
             float range = e.Radius + target.Radius + 3f;
             if (e.Pos.DistanceTo(target.Pos) > range)
@@ -632,7 +660,7 @@ public partial class ArenaView : Control
         {
             if (u.Downed) continue;
             Color body = u.HitFlash > 0f ? new Color(1f, 0.7f, 0.7f) : u.Color;
-            DrawCreature(u.Pos, u.Radius, body, faceDir: 1f, enemy: false);
+            DrawCreature(u.Pos, u.Radius, body, u.Facing, enemy: false);
             if (u.Role == Role.Ranged)
                 DrawArc(u.Pos, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.4f), 1.5f);
             DrawBar(new Vector2(u.Pos.X - 11f, u.Pos.Y + u.Radius + 3f), 22f, u.Hp / u.MaxHp, AllyHpColor);
@@ -645,7 +673,7 @@ public partial class ArenaView : Control
             if (e.IsBoss) boss = e;
             Color baseCol = e.IsBoss ? Darken(map.EnemyColor) : map.EnemyColor;
             Color body = e.HitFlash > 0f ? Colors.White : baseCol;
-            DrawCreature(e.Pos, e.Radius, body, faceDir: -1f, enemy: true);
+            DrawCreature(e.Pos, e.Radius, body, e.Facing, enemy: true);
             if (!e.IsBoss)
                 DrawBar(new Vector2(e.Pos.X - 9f, e.Pos.Y - e.Radius - 6f), 18f, e.Hp / e.MaxHp, EnemyHpColor);
         }
@@ -696,24 +724,31 @@ public partial class ArenaView : Control
         DrawString(font, new Vector2(margin, y + 22f), $"👹 {map.BossName}", HorizontalAlignment.Left, w, 12, new Color(1f, 0.85f, 0.85f, 0.9f));
     }
 
-    // "Sprite" simple: cuerpo + contorno + ojos (con pupila). Da carácter sin texturas.
-    private void DrawCreature(Vector2 pos, float r, Color body, float faceDir, bool enemy)
+    // "Sprite" simple: cuerpo + contorno + ojos que miran hacia el objetivo (facing).
+    private void DrawCreature(Vector2 pos, float r, Color body, Vector2 facing, bool enemy)
     {
         DrawCircle(pos, r, body);
         DrawArc(pos, r, 0f, Mathf.Tau, 22, new Color(0f, 0f, 0f, 0.35f), 1.5f);
 
-        float eyeDx = faceDir * r * 0.32f;
-        float eyeDy = r * 0.28f;
+        Vector2 f = facing.LengthSquared() > 0.001f ? facing.Normalized() : (enemy ? Vector2.Left : Vector2.Right);
+        Vector2 perp = new Vector2(-f.Y, f.X);
         float eyeR = r * 0.24f;
-        var eyeA = new Vector2(pos.X + eyeDx, pos.Y - eyeDy);
-        var eyeB = new Vector2(pos.X + eyeDx, pos.Y + eyeDy);
+        Vector2 eyeCenter = pos + f * (r * 0.30f);
+        Vector2 eyeA = eyeCenter + perp * (r * 0.30f);
+        Vector2 eyeB = eyeCenter - perp * (r * 0.30f);
         DrawCircle(eyeA, eyeR, Colors.White);
         DrawCircle(eyeB, eyeR, Colors.White);
 
         Color pupil = enemy ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.1f, 0.1f, 0.15f);
-        float pupilDx = faceDir * eyeR * 0.4f;
-        DrawCircle(new Vector2(eyeA.X + pupilDx, eyeA.Y), eyeR * 0.5f, pupil);
-        DrawCircle(new Vector2(eyeB.X + pupilDx, eyeB.Y), eyeR * 0.5f, pupil);
+        Vector2 pupilOff = f * (eyeR * 0.45f);
+        DrawCircle(eyeA + pupilOff, eyeR * 0.5f, pupil);
+        DrawCircle(eyeB + pupilOff, eyeR * 0.5f, pupil);
+    }
+
+    private static Vector2 Dir(Vector2 from, Vector2 to)
+    {
+        Vector2 d = to - from;
+        return d.LengthSquared() > 0.0001f ? d.Normalized() : Vector2.Right;
     }
 
     private void DrawBar(Vector2 pos, float width, float frac, Color fill)
