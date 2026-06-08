@@ -1,0 +1,30 @@
+# ---------- .NET ----------
+bin/
+obj/
+*.user
+*.suo
+.vs/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+TestResults/
+*.trx
+
+# ---------- Godot 4 ----------
+# Carpeta de importación/caché del editor
+.godot/
+# Exportaciones
+/export/
+/build/
+*.import.bak
+
+# Godot genera estos para el proyecto .NET; se regeneran solos
+# (mantener project.godot, .csproj y .sln versionados)
+mono_crash.*.json
+
+# ---------- Editores / SO ----------
+*.swp
+*~
+.idea/
+Thumbs.db
+desktop.ini
