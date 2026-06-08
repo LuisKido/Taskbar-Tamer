@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using TaskbarTamer.Core;
+using TaskbarTamer.Core.Rng;
 using TaskbarTamer.Core.Data;
 using TaskbarTamer.Core.Idle;
 using TaskbarTamer.Core.Model;
@@ -64,6 +65,29 @@ public sealed class GameSession
     {
         int band = (State.Stage - 1) / 10;
         State.Stage = Math.Max(1, band * 10 + 1);
+    }
+
+    /// <summary>
+    /// Botín garantizado al derrotar a un jefe: una parte de rareza alta (Épico, o
+    /// Legendario a partir de fase 20). La añade al inventario y la devuelve. No persiste.
+    /// </summary>
+    public Part GrantBossReward()
+    {
+        var rng = new DeterministicRng(State.FarmingRngState + (ulong)State.Stage * 0x9E3779B97F4A7C15UL);
+
+        AnatomySlot[] slots = Enum.GetValues<AnatomySlot>();
+        AnatomySlot slot = slots[rng.NextInt(slots.Length)];
+
+        string[] families = { "Abisal", "Volcanica", "Espectral" };
+        string family = families[rng.NextInt(families.Length)];
+
+        Rarity rarity = State.Stage >= 20 ? Rarity.Legendario : Rarity.Epico;
+
+        var ids = new IdAllocator(State.NextId);
+        Part part = PartFactory.Create(ids.Next(), family, slot, rarity, _config);
+        State.NextId = ids.Peek;
+        State.Inventory.Add(part);
+        return part;
     }
 
     // Migración/arranque: si no hay formación pero hay criaturas, coloca las primeras

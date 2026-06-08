@@ -201,6 +201,7 @@ public partial class Main : Control
         _activeManage = null;
         _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
+        _arena.RebuildUnits();
         Refresh();
     }
 
@@ -223,6 +224,7 @@ public partial class Main : Control
         _activeRecruit = null;
         _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
+        _arena.RebuildUnits();
         Refresh();
     }
 
@@ -245,6 +247,7 @@ public partial class Main : Control
         _activeFormation = null;
         _mainPanel.Visible = true;
         GetWindow().Size = CompactSize;
+        _arena.RebuildUnits();
         Refresh();
     }
 

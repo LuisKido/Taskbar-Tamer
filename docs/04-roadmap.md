@@ -49,6 +49,8 @@
   - [x] Barras de vida en aliados; los enemigos contraatacan; **derrota** → retirada al inicio del mapa.
   - [x] **Jefes cada 10 fases** + **3 mapas temáticos** que rotan; progresión más difícil.
   - [x] Efectos: destellos al golpear, anillos de impacto, poof de muerte, banners, screen shake.
+  - [x] Recompensa de jefe (parte Épica/Legendaria garantizada), curación parcial entre oleadas, recompensa de fase flotante.
+  - [x] Criaturas estilo "sprite" (cuerpo + ojos), barra de jefe arriba, partículas (disparo/impacto/estela), color de ataque según anatomía ofensiva.
 - [ ] Modo compacto ↔ expandido.
 
 ## Fase 4 — Crianza y progresión a largo plazo
