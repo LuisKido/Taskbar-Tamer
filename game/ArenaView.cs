@@ -43,6 +43,20 @@ public partial class ArenaView : Control
         public Vector2 Pos;
         public Enemy Target = null!;
         public float Damage;
+        public bool Crit;
+    }
+
+    // Número de daño flotante estilo Ragnarok Online: salta sobre el objetivo,
+    // describe un arco hacia arriba y se desvanece. Los críticos son más grandes.
+    private sealed class DamageNumber
+    {
+        public Vector2 Pos;
+        public Vector2 Vel;
+        public float Age;
+        public float Life;
+        public string Text = "";
+        public Color Color;
+        public float Scale;
     }
 
     /// <summary>Se emite al avanzar de fase, para que el panel principal refresque etiquetas.</summary>
@@ -51,8 +65,10 @@ public partial class ArenaView : Control
     private GameSession _session = null!;
     private readonly List<Enemy> _enemies = new();
     private readonly List<Shot> _shots = new();
+    private readonly List<DamageNumber> _damageNumbers = new();
     private float _attackTimer;
     private float _playerDamage = 4f;
+    private float _critChance = 0.12f;
     private int _shooters = 1;
     private double _saveAccum;
     private bool _dirty;
@@ -75,9 +91,16 @@ public partial class ArenaView : Control
         _shooters = Math.Max(1, fighters.Count);
 
         float attack = 0;
+        float critBp = 0;
         foreach (Creature c in fighters)
-            attack += StatsResolver.Resolve(c, SetRegistry.Empty).Stats.Attack;
+        {
+            Stats s = StatsResolver.Resolve(c, SetRegistry.Empty).Stats;
+            attack += s.Attack;
+            critBp += s.CritChance;
+        }
         _playerDamage = Math.Max(4f, attack * 0.5f);
+        critBp /= _shooters;
+        _critChance = Math.Clamp(0.12f + critBp / 10000f, 0f, 0.6f); // 12% base + crítico del equipo
     }
 
     private void SpawnWave()
@@ -116,6 +139,7 @@ public partial class ArenaView : Control
 
         UpdateShots(dt);
         AdvanceEnemies(dt);
+        UpdateDamageNumbers(dt);
 
         if (_enemies.Count == 0)
         {
@@ -146,7 +170,14 @@ public partial class ArenaView : Control
             Enemy? target = NearestEnemy(players[i]);
             if (target is null)
                 break;
-            _shots.Add(new Shot { Pos = players[i], Target = target, Damage = _playerDamage });
+            bool crit = GD.Randf() < _critChance;
+            _shots.Add(new Shot
+            {
+                Pos = players[i],
+                Target = target,
+                Damage = crit ? _playerDamage * 2f : _playerDamage,
+                Crit = crit,
+            });
         }
     }
 
@@ -177,10 +208,38 @@ public partial class ArenaView : Control
             if (s.Pos.DistanceTo(s.Target.Pos) <= s.Target.Radius + 2f)
             {
                 s.Target.Hp -= s.Damage;
+                SpawnDamageNumber(s.Target.Pos, (int)MathF.Round(s.Damage), s.Crit);
                 if (s.Target.Hp <= 0f)
                     _enemies.Remove(s.Target);
                 _shots.RemoveAt(i);
             }
+        }
+    }
+
+    private void SpawnDamageNumber(Vector2 at, int amount, bool crit)
+    {
+        _damageNumbers.Add(new DamageNumber
+        {
+            Pos = at + new Vector2((GD.Randf() - 0.5f) * 6f, -10f),
+            Vel = new Vector2((GD.Randf() - 0.5f) * 26f, -46f), // salta hacia arriba
+            Age = 0f,
+            Life = crit ? 0.85f : 0.7f,
+            Text = amount.ToString(),
+            Color = crit ? new Color(1f, 0.78f, 0.2f) : new Color(1f, 1f, 1f),
+            Scale = crit ? 1.6f : 1f,
+        });
+    }
+
+    private void UpdateDamageNumbers(float dt)
+    {
+        for (int i = _damageNumbers.Count - 1; i >= 0; i--)
+        {
+            DamageNumber d = _damageNumbers[i];
+            d.Pos += d.Vel * dt;
+            d.Vel = new Vector2(d.Vel.X, d.Vel.Y + 90f * dt); // gravedad: arco hacia arriba y caída
+            d.Age += dt;
+            if (d.Age >= d.Life)
+                _damageNumbers.RemoveAt(i);
         }
     }
 
@@ -224,7 +283,33 @@ public partial class ArenaView : Control
             DrawCircle(s.Pos, 3f, ShotColor);
 
         Font font = GetThemeDefaultFont();
+        DrawDamageNumbers(font);
+
         DrawString(font, new Vector2(8, 18), $"Fase {_session.Stage}",
             HorizontalAlignment.Left, -1, 14, new Color(1f, 1f, 1f, 0.85f));
+    }
+
+    // Dibuja cada número con sus dígitos escalonados verticalmente (estilo Ragnarok),
+    // desvaneciéndose con la edad.
+    private void DrawDamageNumbers(Font font)
+    {
+        foreach (DamageNumber d in _damageNumbers)
+        {
+            float alpha = Math.Clamp(1f - d.Age / d.Life, 0f, 1f);
+            Color color = d.Color;
+            color.A = alpha;
+
+            int fontSize = (int)(13f * d.Scale);
+            float digitWidth = 8f * d.Scale;
+
+            for (int i = 0; i < d.Text.Length; i++)
+            {
+                // Escalonado: cada dígito sube un poco respecto al anterior (look RO).
+                float yStagger = -MathF.Sin((i + 1) * 0.9f) * 2.5f * d.Scale;
+                var pos = new Vector2(d.Pos.X + i * digitWidth, d.Pos.Y + yStagger);
+                DrawString(font, pos, d.Text[i].ToString(),
+                    HorizontalAlignment.Left, -1, fontSize, color);
+            }
+        }
     }
 }
