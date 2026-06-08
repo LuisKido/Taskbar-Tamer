@@ -14,6 +14,10 @@ public static class StatsResolver
     {
         Stats total = creature.Innate;
 
+        // Rasgos heredados (Fase 4): bonificación de base permanente.
+        foreach (Trait trait in creature.Traits)
+            total += trait.StatBonus;
+
         var familyCounts = new Dictionary<string, int>();
         foreach (Part part in creature.Equipped.Values)
         {

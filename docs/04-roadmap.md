@@ -28,7 +28,8 @@
 - [x] `FarmingSimulator`: resolución por delta de tiempo + tope de progreso offline (función pura, determinista).
 - [x] `Inventory` + fusión (3 iguales → rareza superior) con cascada (`AutoFuse`).
 - [x] 27 tests verdes (determinismo, pesos, reanudación por tramos, cascada de fusión).
-- [ ] Persistencia local (`user://`) — **pendiente**: requiere el cliente Godot (la serialización del estado se puede preparar en `core/` antes).
+- [x] Serialización del estado (`SaveData` + `SaveSerializer`, JSON, round-trip testeado) en `core/`.
+- [ ] Escritura/lectura en `user://` — **pendiente**: requiere el cliente Godot (solo el I/O de archivo).
 
 > Nota: se abstrae la fuerza del equipo como `TeamPower` (int). El cálculo real de `TeamPower` a partir de criaturas+stats llega con la Fase 1 (simulador).
 
@@ -41,9 +42,11 @@
 
 ## Fase 4 — Crianza y progresión a largo plazo
 **Meta:** el bucle de optimización a lo largo del tiempo.
-- [ ] Límite de nivel + retiro de campeones.
-- [ ] Herencia genética (transmitir rasgo/equipo).
-- [ ] Balance de progresión.
+- [x] `Leveling`: XP por nivel, límite de nivel (`MaxLevel`), XP excedente descartada al tope.
+- [x] `Trait` (rasgo heredable) integrado en `StatsResolver` (bonus de base permanente).
+- [x] `Breeder`: retiro de campeón al máximo + herencia (rasgo desde parte equipada o rasgo previo).
+- [x] Tests: progresión, tope de nivel, gate de retiro, % de herencia, descendencia más fuerte (5 tests).
+- [ ] Balance de progresión — **iterativo**: requiere telemetría/jugabilidad real.
 
 ## Fase 5 — Competitivo (servidor)
 **Meta:** ranked asíncrono funcionando.

@@ -46,6 +46,17 @@ public sealed class GameConfig
     /// <summary>Stacks de veneno aplicados por golpe con la palabra clave ApplyPoisonOnHit.</summary>
     public int PoisonStacksPerHit { get; init; } = 1;
 
+    // ---------- Progresión y crianza (Fase 4) ----------
+
+    /// <summary>XP base por nivel; la XP para subir del nivel N es BaseXpToLevel * N.</summary>
+    public long BaseXpToLevel { get; init; } = 100;
+
+    /// <summary>
+    /// Fracción (basis points) de las stats de la parte/rasgo de un campeón retirado
+    /// que se transmite como rasgo permanente a la siguiente generación (5000 = 50%).
+    /// </summary>
+    public int InheritanceBp { get; init; } = 5000;
+
     public static readonly IReadOnlyDictionary<Rarity, int> DefaultRarityBp =
         new Dictionary<Rarity, int>
         {
