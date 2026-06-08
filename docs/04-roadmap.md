@@ -11,11 +11,14 @@
 
 ## Fase 1 — Núcleo de simulación (determinista)
 **Meta:** `Simular(setupA, setupB, semilla)` → log de eventos reproducible. *El corazón del juego.*
-- [ ] Modelo de datos (`Stats`, `Part`, `Creature`, `Setup`) — ver [03-modelo-datos.md](03-modelo-datos.md).
-- [ ] `DeterministicRng` sembrado.
-- [ ] Resolución de combate: orden por SPD, targeting frontal/retaguardia, daño, críticos, evasión.
-- [ ] Sinergias de set y estados (veneno, etc.).
-- [ ] Tests: determinismo (misma entrada → mismo log) + batallas "golden".
+- [x] Modelo: `Creature`, `Setup` (frontal/retaguardia), `SetDefinition`/`SetRegistry`, `CombatKeyword`.
+- [x] `StatsResolver`: stats efectivas = innato + partes + bonos de set (determinista, conmutativo).
+- [x] `DeterministicRng` sembrado (de Fase 2).
+- [x] `BattleSimulator`: orden por SPD (desempate total), targeting frontal→retaguardia, daño con mitigación por defensa, críticos, evasión.
+- [x] Sinergias de set + estado Veneno (keyword `ApplyPoisonOnHit`, tick por ronda).
+- [x] Log de eventos reproducible (`BattleEvent`) + desenlace con tope de rondas y desempate por HP.
+- [x] `PowerRating`: convierte un `Setup` en el `TeamPower` (int) que consume el idle.
+- [x] Tests: determinismo (mismo input → log idéntico), fórmula de daño, crit/evasión, targeting, veneno, sets (10 tests).
 
 ## Fase 2 — Loop idle + inventario
 **Meta:** farming por tiempo que genera loot real.

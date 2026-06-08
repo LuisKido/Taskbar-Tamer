@@ -23,6 +23,29 @@ public sealed class GameConfig
     /// <summary>Factor de escalado de stats por rareza, en basis points (10000 = x1.0).</summary>
     public IReadOnlyDictionary<Rarity, int> RarityStatBp { get; init; } = DefaultRarityBp;
 
+    // ---------- Combate (Fase 1) ----------
+
+    /// <summary>
+    /// Constante de mitigación por defensa. Daño = atk * K / (K + def). Mayor K =
+    /// la defensa importa menos. Con K=100, def=100 reduce el daño a la mitad.
+    /// </summary>
+    public int DefenseConstant { get; init; } = 100;
+
+    /// <summary>Multiplicador base de crítico en basis points (15000 = x1.5). Se le suma el CritDamage del atacante.</summary>
+    public int CritBaseBp { get; init; } = 15000;
+
+    /// <summary>Tope de rondas de una batalla; si se alcanza, se decide por HP restante.</summary>
+    public int MaxRounds { get; init; } = 50;
+
+    /// <summary>Daño de veneno por stack en cada tick (inicio de ronda).</summary>
+    public int PoisonDamagePerStack { get; init; } = 15;
+
+    /// <summary>Rondas que dura el veneno tras el último golpe que lo aplica.</summary>
+    public int PoisonDuration { get; init; } = 3;
+
+    /// <summary>Stacks de veneno aplicados por golpe con la palabra clave ApplyPoisonOnHit.</summary>
+    public int PoisonStacksPerHit { get; init; } = 1;
+
     public static readonly IReadOnlyDictionary<Rarity, int> DefaultRarityBp =
         new Dictionary<Rarity, int>
         {
