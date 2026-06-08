@@ -22,6 +22,9 @@ TestResults/
 # (mantener project.godot, .csproj y .sln versionados)
 mono_crash.*.json
 
+# ---------- Claude Code (ajustes locales por máquina) ----------
+.claude/settings.local.json
+
 # ---------- Editores / SO ----------
 *.swp
 *~
