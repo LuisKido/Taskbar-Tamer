@@ -39,6 +39,7 @@
 - [x] Integración Godot↔core: la pantalla usa `FarmingSimulator`/`PowerRating` reales.
 - [x] Persistencia: `SaveStore` (I/O en `user://`) + `GameSession` (carga/crea, progreso offline al abrir). Verificado end-to-end.
 - [x] Panel de gestión: roster, ranuras de anatomía por criatura, inventario, equipar/desequipar partes (con poder en vivo).
+- [x] Inventario agrupado por tipo (×N) + **fusión en la UI** (botón "Fusionar todo", cascada).
 - [x] Reproductor de batalla: anima el log de eventos del simulador (barras de vida, golpes, críticos, veneno, K.O., desenlace). No recalcula.
 - [ ] Editor de formación (posicionamiento frontal/retaguardia).
 - [ ] Modo compacto ↔ expandido.

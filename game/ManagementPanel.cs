@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using TaskbarTamer.Core;
 using TaskbarTamer.Core.Model;
 using TaskbarTamer.Core.Simulation;
 
@@ -23,6 +25,7 @@ public partial class ManagementPanel : Control
     private VBoxContainer _slotsBox = null!;
     private Label _invCountLabel = null!;
     private VBoxContainer _invBox = null!;
+    private int _lastFusions = -1;
 
     public void Begin(GameSession session)
     {
@@ -94,8 +97,17 @@ public partial class ManagementPanel : Control
         right.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         body.AddChild(right);
 
+        var invHeader = new HBoxContainer();
+        right.AddChild(invHeader);
+
         _invCountLabel = new Label { Text = "Inventario" };
-        right.AddChild(_invCountLabel);
+        _invCountLabel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        invHeader.AddChild(_invCountLabel);
+
+        var fuseButton = new Button { Text = "⚗ Fusionar todo", FocusMode = FocusModeEnum.None };
+        fuseButton.TooltipText = $"Combina {GameConfig.Default.FusionRequirement} partes idénticas en una de rareza superior";
+        fuseButton.Pressed += OnFusePressed;
+        invHeader.AddChild(fuseButton);
 
         var scroll = new ScrollContainer();
         scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -172,27 +184,67 @@ public partial class ManagementPanel : Control
         }
     }
 
+    private void OnFusePressed()
+    {
+        _lastFusions = _session.FuseAll();
+        RefreshAll();
+    }
+
     private void RefreshInventory()
     {
         ClearChildren(_invBox);
         var inventory = _session.State.Inventory;
-        _invCountLabel.Text = $"Inventario ({inventory.Count})  ·  clic para equipar";
 
+        string suffix = _lastFusions switch
+        {
+            > 0 => $"  ·  ⚗ {_lastFusions} fusiones",
+            0 => "  ·  nada que fusionar",
+            _ => "  ·  clic para equipar",
+        };
+        _invCountLabel.Text = $"Inventario ({inventory.Count}){suffix}";
+
+        // Agrupa partes idénticas (misma familia+ranura+rareza) en orden de aparición.
+        var order = new List<PartKind>();
+        var reps = new Dictionary<PartKind, Part>();
+        var counts = new Dictionary<PartKind, int>();
         foreach (Part part in inventory)
         {
+            if (counts.TryGetValue(part.Kind, out int n))
+            {
+                counts[part.Kind] = n + 1;
+            }
+            else
+            {
+                order.Add(part.Kind);
+                reps[part.Kind] = part;
+                counts[part.Kind] = 1;
+            }
+        }
+
+        int fusionReq = GameConfig.Default.FusionRequirement;
+        foreach (PartKind kind in order)
+        {
+            Part rep = reps[kind];
+            int count = counts[kind];
+            bool fusable = count >= fusionReq && kind.Rarity != Rarity.Legendario;
+            string mark = fusable ? "  ⚗" : "";
+
             var btn = new Button
             {
-                Text = $"{Labels.Slot(part.Slot)} {part.Family} [{Labels.Rarity(part.Rarity)}]\n{Labels.PartStats(part)}",
+                Text = $"{Labels.Slot(kind.Slot)} {kind.Family} [{Labels.Rarity(kind.Rarity)}] ×{count}{mark}\n{Labels.PartStats(rep)}",
                 FocusMode = FocusModeEnum.None,
                 Alignment = HorizontalAlignment.Left,
+                TooltipText = "Clic para equipar una",
             };
-            btn.Modulate = Labels.RarityColor(part.Rarity);
+            btn.Modulate = Labels.RarityColor(kind.Rarity);
             btn.AddThemeFontSizeOverride("font_size", 11);
 
-            Part p = part;
-            btn.Pressed += () => { _session.Equip(_selected, p); RefreshAll(); };
+            Part toEquip = rep;
+            btn.Pressed += () => { _session.Equip(_selected, toEquip); RefreshAll(); };
             _invBox.AddChild(btn);
         }
+
+        _lastFusions = -1; // el mensaje de fusión se muestra una sola vez
     }
 
     private static void ClearChildren(Node box)

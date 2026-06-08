@@ -93,6 +93,29 @@ public sealed class GameSession
         Save();
     }
 
+    /// <summary>
+    /// Fusiona automáticamente todas las partes fusionables del inventario (en cascada)
+    /// y persiste. Devuelve el número de fusiones realizadas.
+    /// </summary>
+    public int FuseAll()
+    {
+        var inv = new Inventory();
+        inv.AddRange(State.Inventory);
+
+        var ids = new IdAllocator(State.NextId);
+        int fusions = inv.AutoFuse(ids, _config);
+
+        if (fusions > 0)
+        {
+            State.Inventory.Clear();
+            State.Inventory.AddRange(inv.Parts);
+            State.NextId = ids.Peek;
+            Save();
+        }
+
+        return fusions;
+    }
+
     public void Save() => SaveStore.Save(State);
 
     // Resuelve farming sobre el bioma actual y vuelca el botín al estado.
