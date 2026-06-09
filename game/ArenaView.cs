@@ -26,6 +26,10 @@ public partial class ArenaView : Control
     private const float BaseEnemyHp = 22f;
     private const int MapBand = 10;
     private const float WaveHealFraction = 0.35f;
+    private const float AbilityInterval = 6f;
+    private const float TauntDuration = 2.5f;
+    private const float DashDuration = 0.22f;
+    private const float KiteRange = 42f;
 
     private static readonly Color RangedColor = new(0.45f, 0.95f, 0.85f);
     private static readonly Color MeleeColor = new(0.45f, 0.72f, 1f);
@@ -54,6 +58,8 @@ public partial class ArenaView : Control
 
     private enum Role { Melee, Ranged }
 
+    private enum Ability { Cleave, Taunt, Dash, VenomNova }
+
     private sealed class PlayerUnit
     {
         public Vector2 Pos;
@@ -71,6 +77,11 @@ public partial class ArenaView : Control
         public float MaxHp;
         public float Hp;
         public float HitFlash;
+        public Ability Ability;
+        public float AbilityCooldown;
+        public float DashTime;
+        public Vector2 DashFrom;
+        public Vector2 DashTo;
         public bool Downed => Hp <= 0f;
     }
 
@@ -152,6 +163,9 @@ public partial class ArenaView : Control
     private string _banner = "";
     private float _bannerTimer;
     private float _shake;
+    private float _pulseT;
+    private PlayerUnit? _tauntUnit;
+    private float _tauntTimer;
 
     private MapDef CurrentMap => Maps[((_session.Stage - 1) / MapBand) % Maps.Length];
     private bool IsBossStage => _session.Stage % MapBand == 0;
@@ -208,7 +222,21 @@ public partial class ArenaView : Control
             Radius = role == Role.Melee ? 10f : 9f,
             MaxHp = maxHp,
             Hp = maxHp,
+            Ability = AbilityFor(creature),
+            AbilityCooldown = AbilityInterval * (0.4f + GD.Randf() * 0.6f),
         };
+    }
+
+    // La habilidad activa depende de la anatomía equipada (decide la táctica del equipo).
+    private static Ability AbilityFor(Creature c)
+    {
+        if (c.Equipped.ContainsKey(AnatomySlot.Shell) || c.Equipped.ContainsKey(AnatomySlot.Fur) || c.Equipped.ContainsKey(AnatomySlot.Scales))
+            return Ability.Taunt;
+        if (c.Equipped.ContainsKey(AnatomySlot.Wings) || c.Equipped.ContainsKey(AnatomySlot.Tail))
+            return Ability.Dash;
+        if (c.Equipped.ContainsKey(AnatomySlot.Glands) || c.Equipped.ContainsKey(AnatomySlot.Stinger))
+            return Ability.VenomNova;
+        return Ability.Cleave;
     }
 
     // El color del ataque depende de la anatomía ofensiva equipada (tipo de daño).
@@ -308,6 +336,9 @@ public partial class ArenaView : Control
 
         if (_bannerTimer > 0f) _bannerTimer -= dt;
         if (_shake > 0f) _shake = Math.Max(0f, _shake - dt * 18f);
+        _pulseT += dt;
+        if (_tauntTimer > 0f) _tauntTimer -= dt;
+        if (_tauntUnit is { Downed: true }) _tauntUnit = null;
 
         if (_units.Count > 0 && _units.All(u => u.Downed))
             Retreat();
@@ -373,6 +404,22 @@ public partial class ArenaView : Control
             if (u.HitFlash > 0f) u.HitFlash -= dt;
             if (u.Downed) continue;
 
+            // Embestida en curso: ignora el comportamiento normal mientras se desliza.
+            if (u.DashTime > 0f)
+            {
+                UpdateDash(u, dt);
+                continue;
+            }
+
+            // Habilidad activa (cooldown).
+            u.AbilityCooldown -= dt;
+            if (u.AbilityCooldown <= 0f && _enemies.Count > 0)
+            {
+                ExecuteAbility(u);
+                u.AbilityCooldown = AbilityInterval;
+                if (u.DashTime > 0f) continue; // la embestida empieza este mismo frame
+            }
+
             Vector2 home = HomeFor(u);
             Enemy? target = NearestEnemy(u.Pos);
             if (target is not null)
@@ -380,18 +427,24 @@ public partial class ArenaView : Control
 
             if (u.Role == Role.Ranged)
             {
-                u.Pos = home;
+                // Kiting: si un enemigo se acerca demasiado, retrocede sin dejar de disparar.
+                if (target is not null && u.Pos.DistanceTo(target.Pos) < KiteRange)
+                    u.Pos = ClampToArena(u.Pos + Dir(target.Pos, u.Pos) * 58f * dt);
+                else
+                    u.Pos = u.Pos.MoveToward(home, MeleeSpeed * 0.6f * dt);
+
                 u.AttackTimer -= dt;
                 if (target is not null && u.AttackTimer <= 0f)
                 {
                     bool crit = GD.Randf() < u.CritChance;
                     _shots.Add(new Shot { Pos = u.Pos, Target = target, Damage = crit ? u.Damage * 2f : u.Damage, Crit = crit, Color = u.ShotColor });
-                    SpawnParticles(u.Pos, 4, u.ShotColor, 40f); // fogonazo
+                    SpawnParticles(u.Pos, 4, u.ShotColor, 40f);
                     u.AttackTimer = PlayerAttackInterval;
                 }
                 continue;
             }
 
+            // Melee.
             if (target is null)
             {
                 u.Facing = Dir(u.Pos, home);
@@ -417,13 +470,95 @@ public partial class ArenaView : Control
         }
     }
 
+    private void UpdateDash(PlayerUnit u, float dt)
+    {
+        u.DashTime -= dt;
+        float t = Math.Clamp(1f - u.DashTime / DashDuration, 0f, 1f);
+        u.Facing = Dir(u.DashFrom, u.DashTo);
+        u.Pos = u.DashFrom.Lerp(u.DashTo, t);
+        SpawnTrail(u.Pos, u.ShotColor);
+
+        if (u.DashTime <= 0f)
+        {
+            foreach (Enemy e in EnemiesInRadius(u.Pos, 34f))
+                HitEnemy(e, u.Damage, false, u.ShotColor);
+            SpawnRing(u.Pos, u.ShotColor, 34f, 0.3f);
+            SpawnParticles(u.Pos, 12, u.ShotColor, 120f);
+            SpawnShake(2f);
+        }
+    }
+
+    private void ExecuteAbility(PlayerUnit u)
+    {
+        switch (u.Ability)
+        {
+            case Ability.Taunt:
+                _tauntUnit = u;
+                _tauntTimer = TauntDuration;
+                foreach (Enemy e in _enemies)
+                    if (e.Pos.DistanceTo(u.Pos) < 78f)
+                        e.Pos = e.Pos.MoveToward(u.Pos, 46f);
+                SpawnRing(u.Pos, new Color(0.5f, 0.7f, 1f), 78f, 0.4f);
+                SpawnFloater(u.Pos, "¡Provocar!", new Color(0.6f, 0.8f, 1f), 12);
+                break;
+
+            case Ability.Dash:
+                u.DashFrom = u.Pos;
+                u.DashTo = ClampToArena(EnemyCentroid());
+                u.DashTime = DashDuration;
+                SpawnFloater(u.Pos, "¡Embestida!", u.ShotColor, 12);
+                break;
+
+            case Ability.VenomNova:
+                foreach (Enemy e in EnemiesInRadius(u.Pos, 48f))
+                    HitEnemy(e, u.Damage * 1.1f, false, VenomColor);
+                SpawnRing(u.Pos, VenomColor, 48f, 0.35f);
+                SpawnParticles(u.Pos, 16, VenomColor, 90f);
+                SpawnFloater(u.Pos, "¡Toxina!", VenomColor, 12);
+                break;
+
+            default: // Cleave
+                foreach (Enemy e in EnemiesInRadius(u.Pos, 40f))
+                    HitEnemy(e, u.Damage * 0.8f, false, u.ShotColor);
+                SpawnRing(u.Pos, u.ShotColor, 40f, 0.25f);
+                SpawnFloater(u.Pos, "¡Tajo!", u.ShotColor, 12);
+                break;
+        }
+    }
+
+    private List<Enemy> EnemiesInRadius(Vector2 center, float radius)
+    {
+        float r2 = radius * radius;
+        var list = new List<Enemy>();
+        foreach (Enemy e in _enemies)
+            if (e.Pos.DistanceSquaredTo(center) <= r2)
+                list.Add(e);
+        return list;
+    }
+
+    private Vector2 EnemyCentroid()
+    {
+        if (_enemies.Count == 0)
+            return Size / 2f;
+        Vector2 sum = Vector2.Zero;
+        foreach (Enemy e in _enemies)
+            sum += e.Pos;
+        return sum / _enemies.Count;
+    }
+
+    private Vector2 ClampToArena(Vector2 p)
+        => new(Math.Clamp(p.X, 8f, Math.Max(9f, Size.X - 8f)), Math.Clamp(p.Y, 8f, Math.Max(9f, Size.Y - 8f)));
+
     private void UpdateEnemies(float dt)
     {
         foreach (Enemy e in _enemies)
         {
             if (e.HitFlash > 0f) e.HitFlash -= dt;
 
-            PlayerUnit? target = NearestAlivePlayer(e.Pos);
+            // Si hay provocación activa, los enemigos van a por el provocador.
+            PlayerUnit? target = (_tauntTimer > 0f && _tauntUnit is { Downed: false })
+                ? _tauntUnit
+                : NearestAlivePlayer(e.Pos);
             if (target is null)
                 continue;
             e.Facing = Dir(e.Pos, target.Pos);
@@ -670,6 +805,12 @@ public partial class ArenaView : Control
             DrawCreature(u.Pos, u.Radius, body, u.Facing, enemy: false);
             if (u.Role == Role.Ranged)
                 DrawArc(u.Pos, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.4f), 1.5f);
+            if (u.AbilityCooldown <= 0f) // habilidad lista: brillo pulsante
+            {
+                Color glow = AbilityColor(u);
+                glow.A = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 6f));
+                DrawArc(u.Pos, u.Radius + 4f, 0f, Mathf.Tau, 22, glow, 2f);
+            }
             DrawBar(new Vector2(u.Pos.X - 11f, u.Pos.Y + u.Radius + 3f), 22f, u.Hp / u.MaxHp, AllyHpColor);
         }
 
@@ -757,6 +898,13 @@ public partial class ArenaView : Control
         Vector2 d = to - from;
         return d.LengthSquared() > 0.0001f ? d.Normalized() : Vector2.Right;
     }
+
+    private static Color AbilityColor(PlayerUnit u) => u.Ability switch
+    {
+        Ability.Taunt => new Color(0.5f, 0.7f, 1f),
+        Ability.VenomNova => VenomColor,
+        _ => u.ShotColor,
+    };
 
     private void DrawBar(Vector2 pos, float width, float frac, Color fill)
     {
