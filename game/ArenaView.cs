@@ -107,6 +107,7 @@ public partial class ArenaView : Control
         public float Damage;
         public float AttackTimer;
         public float HitFlash;
+        public float StunTimer;
         public bool IsBoss;
     }
 
@@ -152,6 +153,16 @@ public partial class ArenaView : Control
         public Color Color;
     }
 
+    // Tajo melee: media luna que aparece frente a la criatura y se desvanece.
+    private sealed class Slash
+    {
+        public Vector2 Pos;
+        public Vector2 Facing;
+        public float Age;
+        public float Life;
+        public Color Color;
+    }
+
     private sealed class Particle
     {
         public Vector2 Pos;
@@ -172,6 +183,7 @@ public partial class ArenaView : Control
     private readonly List<DamageNumber> _damageNumbers = new();
     private readonly List<Floater> _floaters = new();
     private readonly List<Ring> _rings = new();
+    private readonly List<Slash> _slashes = new();
     private readonly List<Particle> _particles = new();
     private double _saveAccum;
     private bool _dirty;
@@ -355,6 +367,7 @@ public partial class ArenaView : Control
         UpdateDamageNumbers(dt);
         UpdateFloaters(dt);
         UpdateRings(dt);
+        UpdateSlashes(dt);
         UpdateParticles(dt);
 
         if (_bannerTimer > 0f) _bannerTimer -= dt;
@@ -496,7 +509,9 @@ public partial class ArenaView : Control
                 if (u.AttackTimer <= 0f)
                 {
                     bool crit = GD.Randf() < u.CritChance;
-                    HitEnemy(target, crit ? u.Damage * 2f : u.Damage, crit, u.ShotColor);
+                    SpawnSlash(u.Pos + u.Facing * u.Radius, u.Facing, u.ShotColor); // tajo frontal
+                    HitEnemy(target, crit ? u.Damage * 2f : u.Damage, crit, u.ShotColor,
+                        knockFrom: u.Pos, knockback: 11f, stun: 0.18f);
                     u.AttackTimer = PlayerAttackInterval;
                 }
             }
@@ -522,7 +537,7 @@ public partial class ArenaView : Control
             float radius = u.IsJump ? JumpRadius : 34f;
             float mult = u.IsJump ? 1.5f : 1f;
             foreach (Enemy e in EnemiesInRadius(u.Pos, radius))
-                HitEnemy(e, u.Damage * mult, false, u.ShotColor);
+                HitEnemy(e, u.Damage * mult, false, u.ShotColor, knockFrom: u.Pos, knockback: u.IsJump ? 14f : 10f, stun: 0.2f);
             SpawnRing(u.Pos, u.ShotColor, radius, 0.3f);
             SpawnParticles(u.Pos, u.IsJump ? 18 : 12, u.ShotColor, 120f);
             SpawnShake(u.IsJump ? 4f : 2f);
@@ -566,7 +581,7 @@ public partial class ArenaView : Control
 
             case Ability.VenomNova:
                 foreach (Enemy e in EnemiesInRadius(u.Pos, 48f))
-                    HitEnemy(e, u.Damage * 1.1f, false, VenomColor);
+                    HitEnemy(e, u.Damage * 1.1f, false, VenomColor, knockFrom: u.Pos, knockback: 8f, stun: 0.16f);
                 SpawnRing(u.Pos, VenomColor, 48f, 0.35f);
                 SpawnParticles(u.Pos, 16, VenomColor, 90f);
                 SpawnFloater(u.Pos, "¡Toxina!", VenomColor, 12);
@@ -596,7 +611,7 @@ public partial class ArenaView : Control
     private void ExplodeBlast(Shot s)
     {
         foreach (Enemy e in EnemiesInRadius(s.Pos, s.AoeRadius))
-            HitEnemy(e, s.Damage, false, s.Color);
+            HitEnemy(e, s.Damage, false, s.Color, knockFrom: s.Pos, knockback: 16f, stun: 0.22f);
         SpawnRing(s.Pos, s.Color, s.AoeRadius, 0.35f);
         SpawnParticles(s.Pos, 18, s.Color, 120f);
         SpawnShake(4f);
@@ -643,6 +658,7 @@ public partial class ArenaView : Control
         foreach (Enemy e in _enemies)
         {
             if (e.HitFlash > 0f) e.HitFlash -= dt;
+            if (e.StunTimer > 0f) { e.StunTimer -= dt; continue; } // aturdido: detenido
 
             // Si hay provocación activa, los enemigos van a por el provocador.
             PlayerUnit? target = (_tauntTimer > 0f && _tauntUnit is { Downed: false })
@@ -669,10 +685,18 @@ public partial class ArenaView : Control
         }
     }
 
-    private void HitEnemy(Enemy target, float dmg, bool crit, Color color)
+    private void HitEnemy(Enemy target, float dmg, bool crit, Color color,
+        Vector2 knockFrom = default, float knockback = 0f, float stun = 0f)
     {
         target.Hp -= dmg;
         target.HitFlash = 0.12f;
+
+        // Empuje + aturdimiento (los jefes apenas se inmutan).
+        float resist = target.IsBoss ? 0.2f : 1f;
+        if (stun > 0f)
+            target.StunTimer = MathF.Max(target.StunTimer, stun * resist);
+        if (knockback > 0f)
+            target.Pos = ClampToArena(target.Pos + Dir(knockFrom, target.Pos) * knockback * resist);
         SpawnDamageNumber(target.Pos, (int)MathF.Round(dmg), crit, crit ? new Color(1f, 0.78f, 0.2f) : Colors.White);
         SpawnRing(target.Pos, color, 10f, 0.2f);
         SpawnParticles(target.Pos, crit ? 8 : 5, color, 70f);
@@ -761,7 +785,7 @@ public partial class ArenaView : Control
                 if (s.AoeRadius > 0f)
                     ExplodeBlast(s);
                 else
-                    HitEnemy(s.Target, s.Damage, s.Crit, s.Color);
+                    HitEnemy(s.Target, s.Damage, s.Crit, s.Color, knockFrom: s.Pos, knockback: 6f, stun: 0.12f);
                 _shots.RemoveAt(i);
             }
         }
@@ -807,6 +831,19 @@ public partial class ArenaView : Control
             _floaters[i].Age += dt;
             if (_floaters[i].Age >= _floaters[i].Life)
                 _floaters.RemoveAt(i);
+        }
+    }
+
+    private void SpawnSlash(Vector2 pos, Vector2 facing, Color color)
+        => _slashes.Add(new Slash { Pos = pos, Facing = facing, Age = 0f, Life = 0.18f, Color = color });
+
+    private void UpdateSlashes(float dt)
+    {
+        for (int i = _slashes.Count - 1; i >= 0; i--)
+        {
+            _slashes[i].Age += dt;
+            if (_slashes[i].Age >= _slashes[i].Life)
+                _slashes.RemoveAt(i);
         }
     }
 
@@ -954,6 +991,16 @@ public partial class ArenaView : Control
             Color c = r.Color;
             c.A = Math.Clamp(1f - t, 0f, 1f);
             DrawArc(r.Pos, r.MaxRadius * t, 0f, Mathf.Tau, 24, c, 2f);
+        }
+
+        // Tajos melee: media luna que barre frente a la criatura.
+        foreach (Slash sl in _slashes)
+        {
+            float t = sl.Age / sl.Life;
+            Color c = sl.Color;
+            c.A = Math.Clamp(1f - t, 0f, 1f);
+            float ang = Mathf.Atan2(sl.Facing.Y, sl.Facing.X);
+            DrawArc(sl.Pos, 9f + 7f * t, ang - 1.1f, ang + 1.1f, 12, c, 3.5f);
         }
 
         Font font = GetThemeDefaultFont();
