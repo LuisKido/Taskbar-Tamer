@@ -25,6 +25,7 @@ Gestionas un equipo de criaturas que farmean en segundo plano mientras usas tu P
 | [02 — Arquitectura técnica](docs/02-arquitectura-tecnica.md) | El "cómo": módulos, determinismo, widget, Steam, servidor |
 | [03 — Modelo de datos](docs/03-modelo-datos.md) | Esquemas: criaturas, partes, sets, estadísticas, rarezas |
 | [04 — Roadmap](docs/04-roadmap.md) | Fases de desarrollo y orden de construcción |
+| [05 — Ideas / evolución](docs/05-ideas-evolucion.md) | Backlog de mecánicas de evolución (tema Digimon) para profundidad futura |
 
 ## Principio rector
 
