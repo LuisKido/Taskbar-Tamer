@@ -29,6 +29,9 @@ public partial class ArenaView : Control
     private const float AbilityInterval = 6f;
     private const float TauntDuration = 2.5f;
     private const float DashDuration = 0.22f;
+    private const float JumpDuration = 0.5f;
+    private const float JumpHeight = 28f;
+    private const float JumpRadius = 46f;
     private const float KiteRange = 42f;
 
     private static readonly Color RangedColor = new(0.45f, 0.95f, 0.85f);
@@ -58,7 +61,7 @@ public partial class ArenaView : Control
 
     private enum Role { Melee, Ranged }
 
-    private enum Ability { Cleave, Taunt, Dash, VenomNova }
+    private enum Ability { Cleave, Taunt, Dash, Jump, VenomNova }
 
     private sealed class PlayerUnit
     {
@@ -80,8 +83,15 @@ public partial class ArenaView : Control
         public Ability Ability;
         public float AbilityCooldown;
         public float DashTime;
+        public bool IsJump;
+        public float VisualY;
         public Vector2 DashFrom;
         public Vector2 DashTo;
+        public bool HasOffense;
+        public bool HasShell;
+        public bool HasWings;
+        public bool HasTail;
+        public Color Accent;
         public bool Downed => Hp <= 0f;
     }
 
@@ -209,6 +219,12 @@ public partial class ArenaView : Control
     {
         Stats s = StatsResolver.Resolve(creature, SetRegistry.Empty).Stats;
         float maxHp = Math.Max(40f, s.MaxHp);
+
+        var eq = creature.Equipped;
+        bool offense = eq.ContainsKey(AnatomySlot.Claws) || eq.ContainsKey(AnatomySlot.Fangs) || eq.ContainsKey(AnatomySlot.Stinger);
+        bool shell = eq.ContainsKey(AnatomySlot.Shell) || eq.ContainsKey(AnatomySlot.Fur) || eq.ContainsKey(AnatomySlot.Scales);
+        Rarity maxRarity = eq.Count > 0 ? eq.Values.Max(p => p.Rarity) : Rarity.Fresh;
+
         return new PlayerUnit
         {
             Role = role,
@@ -224,6 +240,11 @@ public partial class ArenaView : Control
             Hp = maxHp,
             Ability = AbilityFor(creature),
             AbilityCooldown = AbilityInterval * (0.4f + GD.Randf() * 0.6f),
+            HasOffense = offense,
+            HasShell = shell,
+            HasWings = eq.ContainsKey(AnatomySlot.Wings),
+            HasTail = eq.ContainsKey(AnatomySlot.Tail),
+            Accent = Labels.RarityColor(maxRarity),
         };
     }
 
@@ -232,8 +253,10 @@ public partial class ArenaView : Control
     {
         if (c.Equipped.ContainsKey(AnatomySlot.Shell) || c.Equipped.ContainsKey(AnatomySlot.Fur) || c.Equipped.ContainsKey(AnatomySlot.Scales))
             return Ability.Taunt;
-        if (c.Equipped.ContainsKey(AnatomySlot.Wings) || c.Equipped.ContainsKey(AnatomySlot.Tail))
+        if (c.Equipped.ContainsKey(AnatomySlot.Wings))
             return Ability.Dash;
+        if (c.Equipped.ContainsKey(AnatomySlot.Tail))
+            return Ability.Jump;
         if (c.Equipped.ContainsKey(AnatomySlot.Glands) || c.Equipped.ContainsKey(AnatomySlot.Stinger))
             return Ability.VenomNova;
         return Ability.Cleave;
@@ -473,18 +496,27 @@ public partial class ArenaView : Control
     private void UpdateDash(PlayerUnit u, float dt)
     {
         u.DashTime -= dt;
-        float t = Math.Clamp(1f - u.DashTime / DashDuration, 0f, 1f);
+        float dur = u.IsJump ? JumpDuration : DashDuration;
+        float t = Math.Clamp(1f - u.DashTime / dur, 0f, 1f);
         u.Facing = Dir(u.DashFrom, u.DashTo);
         u.Pos = u.DashFrom.Lerp(u.DashTo, t);
-        SpawnTrail(u.Pos, u.ShotColor);
+
+        if (u.IsJump)
+            u.VisualY = -MathF.Sin(t * MathF.PI) * JumpHeight; // arco del salto
+        else
+            SpawnTrail(u.Pos, u.ShotColor);
 
         if (u.DashTime <= 0f)
         {
-            foreach (Enemy e in EnemiesInRadius(u.Pos, 34f))
-                HitEnemy(e, u.Damage, false, u.ShotColor);
-            SpawnRing(u.Pos, u.ShotColor, 34f, 0.3f);
-            SpawnParticles(u.Pos, 12, u.ShotColor, 120f);
-            SpawnShake(2f);
+            u.VisualY = 0f;
+            float radius = u.IsJump ? JumpRadius : 34f;
+            float mult = u.IsJump ? 1.5f : 1f;
+            foreach (Enemy e in EnemiesInRadius(u.Pos, radius))
+                HitEnemy(e, u.Damage * mult, false, u.ShotColor);
+            SpawnRing(u.Pos, u.ShotColor, radius, 0.3f);
+            SpawnParticles(u.Pos, u.IsJump ? 18 : 12, u.ShotColor, 120f);
+            SpawnShake(u.IsJump ? 4f : 2f);
+            u.IsJump = false;
         }
     }
 
@@ -506,7 +538,16 @@ public partial class ArenaView : Control
                 u.DashFrom = u.Pos;
                 u.DashTo = ClampToArena(EnemyCentroid());
                 u.DashTime = DashDuration;
+                u.IsJump = false;
                 SpawnFloater(u.Pos, "¡Embestida!", u.ShotColor, 12);
+                break;
+
+            case Ability.Jump:
+                u.DashFrom = u.Pos;
+                u.DashTo = ClampToArena(EnemyCentroid());
+                u.DashTime = JumpDuration;
+                u.IsJump = true;
+                SpawnFloater(u.Pos, "¡Salto!", u.ShotColor, 12);
                 break;
 
             case Ability.VenomNova:
@@ -801,17 +842,24 @@ public partial class ArenaView : Control
         foreach (PlayerUnit u in _units)
         {
             if (u.Downed) continue;
+
+            // Sombra en el suelo cuando salta.
+            if (u.VisualY < -1f)
+                DrawCircle(u.Pos, u.Radius * 0.7f, new Color(0f, 0f, 0f, 0.3f));
+
+            Vector2 dp = new Vector2(u.Pos.X, u.Pos.Y + u.VisualY);
             Color body = u.HitFlash > 0f ? new Color(1f, 0.7f, 0.7f) : u.Color;
-            DrawCreature(u.Pos, u.Radius, body, u.Facing, enemy: false);
+            DrawCreature(dp, u.Radius, body, u.Facing, enemy: false);
+            DrawEquipment(dp, u.Radius, u, u.Facing);
             if (u.Role == Role.Ranged)
-                DrawArc(u.Pos, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.4f), 1.5f);
+                DrawArc(dp, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.4f), 1.5f);
             if (u.AbilityCooldown <= 0f) // habilidad lista: brillo pulsante
             {
                 Color glow = AbilityColor(u);
                 glow.A = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 6f));
-                DrawArc(u.Pos, u.Radius + 4f, 0f, Mathf.Tau, 22, glow, 2f);
+                DrawArc(dp, u.Radius + 4f, 0f, Mathf.Tau, 22, glow, 2f);
             }
-            DrawBar(new Vector2(u.Pos.X - 11f, u.Pos.Y + u.Radius + 3f), 22f, u.Hp / u.MaxHp, AllyHpColor);
+            DrawBar(new Vector2(dp.X - 11f, dp.Y + u.Radius + 3f), 22f, u.Hp / u.MaxHp, AllyHpColor);
         }
 
         // Enemigos (miran a la izquierda).
@@ -893,6 +941,44 @@ public partial class ArenaView : Control
         DrawCircle(eyeB + pupilOff, eyeR * 0.5f, pupil);
     }
 
+    // Dibuja la anatomía equipada sobre la criatura (para que equipar se note), tintada
+    // por la rareza más alta equipada.
+    private void DrawEquipment(Vector2 pos, float r, PlayerUnit u, Vector2 facing)
+    {
+        Vector2 f = facing.LengthSquared() > 0.001f ? facing.Normalized() : Vector2.Right;
+        Vector2 perp = new(-f.Y, f.X);
+        Color a = u.Accent;
+
+        // Caparazón/pelaje: arco grueso en la espalda.
+        if (u.HasShell)
+        {
+            float back = MathF.Atan2(-f.Y, -f.X);
+            DrawArc(pos, r + 2.5f, back - 0.95f, back + 0.95f, 14, a, 3f);
+        }
+
+        // Cola: línea que sale por detrás.
+        if (u.HasTail)
+            DrawLine(pos - f * r, pos - f * (r + 9f), a, 2.5f);
+
+        // Garras/colmillos: 3 pinchos al frente.
+        if (u.HasOffense)
+        {
+            for (int k = -1; k <= 1; k++)
+            {
+                Vector2 off = perp * (k * r * 0.45f);
+                DrawLine(pos + f * (r * 0.8f) + off, pos + f * (r + 6f) + off, a, 2f);
+            }
+        }
+
+        // Alas: dos triángulos arriba.
+        if (u.HasWings)
+        {
+            Vector2 top = pos + new Vector2(0f, -r * 0.55f);
+            DrawColoredPolygon(new[] { top, top + perp * 9f + new Vector2(0f, -3f), top + perp * 3f + new Vector2(0f, -8f) }, a);
+            DrawColoredPolygon(new[] { top, top - perp * 9f + new Vector2(0f, -3f), top - perp * 3f + new Vector2(0f, -8f) }, a);
+        }
+    }
+
     private static Vector2 Dir(Vector2 from, Vector2 to)
     {
         Vector2 d = to - from;
@@ -903,7 +989,7 @@ public partial class ArenaView : Control
     {
         Ability.Taunt => new Color(0.5f, 0.7f, 1f),
         Ability.VenomNova => VenomColor,
-        _ => u.ShotColor,
+        _ => u.ShotColor, // Dash, Jump, Cleave
     };
 
     private void DrawBar(Vector2 pos, float width, float frac, Color fill)

@@ -16,8 +16,8 @@ project/assembly_name="TaskbarTamer.Game"
 [display]
 
 ; Ventana compacta, sin bordes y siempre encima: el usuario la mueve donde quiera.
-window/size/viewport_width=360
-window/size/viewport_height=430
+window/size/viewport_width=420
+window/size/viewport_height=540
 window/size/borderless=true
 window/size/always_on_top=true
 window/size/transparent=false

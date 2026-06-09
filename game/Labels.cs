@@ -51,8 +51,10 @@ public static class Labels
     {
         if (c.Equipped.ContainsKey(AnatomySlot.Shell) || c.Equipped.ContainsKey(AnatomySlot.Fur) || c.Equipped.ContainsKey(AnatomySlot.Scales))
             return "Provocar (atrae enemigos)";
-        if (c.Equipped.ContainsKey(AnatomySlot.Wings) || c.Equipped.ContainsKey(AnatomySlot.Tail))
+        if (c.Equipped.ContainsKey(AnatomySlot.Wings))
             return "Embestida (dash + AoE)";
+        if (c.Equipped.ContainsKey(AnatomySlot.Tail))
+            return "Salto (brinco + golpe)";
         if (c.Equipped.ContainsKey(AnatomySlot.Glands) || c.Equipped.ContainsKey(AnatomySlot.Stinger))
             return "Estallido tóxico (AoE veneno)";
         return "Tajo (golpe en área)";
