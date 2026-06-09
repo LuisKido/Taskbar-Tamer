@@ -61,7 +61,7 @@ public partial class ArenaView : Control
 
     private enum Role { Melee, Ranged }
 
-    private enum Ability { Cleave, Taunt, Dash, Jump, VenomNova }
+    private enum Ability { Blast, Taunt, DashDodge, Jump, VenomNova }
 
     private sealed class PlayerUnit
     {
@@ -85,6 +85,7 @@ public partial class ArenaView : Control
         public float DashTime;
         public bool IsJump;
         public float VisualY;
+        public float InvulnTimer;
         public Vector2 DashFrom;
         public Vector2 DashTo;
         public bool HasOffense;
@@ -115,6 +116,9 @@ public partial class ArenaView : Control
         public float Damage;
         public bool Crit;
         public Color Color;
+        public float Speed = ProjectileSpeed;
+        public float AoeRadius;   // > 0 = explota en área (ráfaga)
+        public float DrawSize = 3f;
     }
 
     private sealed class DamageNumber
@@ -252,10 +256,10 @@ public partial class ArenaView : Control
     private static Ability AbilityFor(Creature c) => c.Archetype switch
     {
         Archetype.Guardian => Ability.Taunt,
-        Archetype.Charger => Ability.Dash,
+        Archetype.Charger => Ability.DashDodge,
         Archetype.Leaper => Ability.Jump,
         Archetype.Venomous => Ability.VenomNova,
-        _ => Ability.Cleave, // Bruiser
+        _ => Ability.Blast, // Bruiser
     };
 
     // El color del ataque es la firma del arquetipo de la criatura.
@@ -421,6 +425,7 @@ public partial class ArenaView : Control
         foreach (PlayerUnit u in _units)
         {
             if (u.HitFlash > 0f) u.HitFlash -= dt;
+            if (u.InvulnTimer > 0f) u.InvulnTimer -= dt;
             if (u.Downed) continue;
 
             // Embestida en curso: ignora el comportamiento normal mientras se desliza.
@@ -530,12 +535,13 @@ public partial class ArenaView : Control
                 SpawnFloater(u.Pos, "¡Provocar!", new Color(0.6f, 0.8f, 1f), 12);
                 break;
 
-            case Ability.Dash:
+            case Ability.DashDodge:
                 u.DashFrom = u.Pos;
                 u.DashTo = ClampToArena(EnemyCentroid());
                 u.DashTime = DashDuration;
                 u.IsJump = false;
-                SpawnFloater(u.Pos, "¡Embestida!", u.ShotColor, 12);
+                u.InvulnTimer = DashDuration + 0.9f; // invulnerable mientras esquiva
+                SpawnFloater(u.Pos, "¡Esquiva!", u.ShotColor, 12);
                 break;
 
             case Ability.Jump:
@@ -554,13 +560,34 @@ public partial class ArenaView : Control
                 SpawnFloater(u.Pos, "¡Toxina!", VenomColor, 12);
                 break;
 
-            default: // Cleave
-                foreach (Enemy e in EnemiesInRadius(u.Pos, 40f))
-                    HitEnemy(e, u.Damage * 0.8f, false, u.ShotColor);
-                SpawnRing(u.Pos, u.ShotColor, 40f, 0.25f);
-                SpawnFloater(u.Pos, "¡Tajo!", u.ShotColor, 12);
+            default: // Blast: proyectil pesado que estalla en área
+                Enemy? blastTarget = NearestEnemy(u.Pos);
+                if (blastTarget is not null)
+                {
+                    _shots.Add(new Shot
+                    {
+                        Pos = u.Pos,
+                        Target = blastTarget,
+                        Damage = u.Damage * 2.5f,
+                        Color = u.ShotColor,
+                        Speed = 175f,
+                        AoeRadius = 42f,
+                        DrawSize = 8f,
+                    });
+                    SpawnParticles(u.Pos, 8, u.ShotColor, 50f);
+                    SpawnFloater(u.Pos, "¡Ráfaga!", u.ShotColor, 13);
+                }
                 break;
         }
+    }
+
+    private void ExplodeBlast(Shot s)
+    {
+        foreach (Enemy e in EnemiesInRadius(s.Pos, s.AoeRadius))
+            HitEnemy(e, s.Damage, false, s.Color);
+        SpawnRing(s.Pos, s.Color, s.AoeRadius, 0.35f);
+        SpawnParticles(s.Pos, 18, s.Color, 120f);
+        SpawnShake(4f);
     }
 
     private List<Enemy> EnemiesInRadius(Vector2 center, float radius)
@@ -645,6 +672,12 @@ public partial class ArenaView : Control
 
     private void HitPlayer(PlayerUnit target, float dmg, bool boss)
     {
+        if (target.InvulnTimer > 0f) // está esquivando: ignora el golpe
+        {
+            SpawnFloater(target.Pos, "esquiva", new Color(0.6f, 0.9f, 1f), 10);
+            return;
+        }
+
         target.Hp -= dmg;
         target.HitFlash = 0.14f;
         SpawnDamageNumber(target.Pos, (int)MathF.Round(dmg), false, new Color(1f, 0.4f, 0.4f));
@@ -691,15 +724,19 @@ public partial class ArenaView : Control
             Shot s = _shots[i];
             if (!_enemies.Contains(s.Target))
             {
+                if (s.AoeRadius > 0f) ExplodeBlast(s); // la ráfaga estalla aunque el objetivo ya no esté
                 _shots.RemoveAt(i);
                 continue;
             }
 
-            s.Pos = s.Pos.MoveToward(s.Target.Pos, ProjectileSpeed * dt);
+            s.Pos = s.Pos.MoveToward(s.Target.Pos, s.Speed * dt);
             SpawnTrail(s.Pos, s.Color);
             if (s.Pos.DistanceTo(s.Target.Pos) <= s.Target.Radius + 2f)
             {
-                HitEnemy(s.Target, s.Damage, s.Crit, s.Color);
+                if (s.AoeRadius > 0f)
+                    ExplodeBlast(s);
+                else
+                    HitEnemy(s.Target, s.Damage, s.Crit, s.Color);
                 _shots.RemoveAt(i);
             }
         }
@@ -847,6 +884,11 @@ public partial class ArenaView : Control
             Color body = u.HitFlash > 0f ? new Color(1f, 0.7f, 0.7f) : u.Color;
             DrawCreature(dp, u.Radius, body, u.Facing, enemy: false);
             DrawEquipment(dp, u.Radius, u, u.Facing);
+            if (u.InvulnTimer > 0f) // escudo de esquiva
+            {
+                float a = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 12f));
+                DrawArc(dp, u.Radius + 5f, 0f, Mathf.Tau, 22, new Color(0.5f, 0.9f, 1f, a), 2f);
+            }
             if (u.Role == Role.Ranged)
                 DrawArc(dp, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.4f), 1.5f);
             if (u.AbilityCooldown <= 0f) // habilidad lista: brillo pulsante
@@ -871,7 +913,15 @@ public partial class ArenaView : Control
         }
 
         foreach (Shot s in _shots)
-            DrawCircle(s.Pos, 3f, s.Color);
+        {
+            if (s.DrawSize > 5f) // glow de la ráfaga
+            {
+                Color halo = s.Color;
+                halo.A = 0.35f;
+                DrawCircle(s.Pos, s.DrawSize * 1.7f, halo);
+            }
+            DrawCircle(s.Pos, s.DrawSize, s.Color);
+        }
 
         foreach (Ring r in _rings)
         {

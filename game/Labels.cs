@@ -52,10 +52,10 @@ public static class Labels
     public static string AbilityName(Archetype a) => a switch
     {
         Core.Model.Archetype.Guardian => "Provocar (atrae enemigos)",
-        Core.Model.Archetype.Charger => "Embestida (dash + AoE)",
+        Core.Model.Archetype.Charger => "Esquiva (dash + invulnerable)",
         Core.Model.Archetype.Leaper => "Salto (brinco + golpe)",
         Core.Model.Archetype.Venomous => "Estallido tóxico (AoE veneno)",
-        _ => "Tajo (golpe en área)", // Bruiser
+        _ => "Ráfaga (proyectil pesado a distancia)", // Bruiser
     };
 
     /// <summary>Resumen compacto de las stats no nulas de una parte.</summary>
