@@ -329,6 +329,7 @@ public partial class ArenaView : Control
     {
         _session.AdvanceStage();
         HealUnits(WaveHealFraction); // curación parcial: el desgaste importa
+        ResetPositions();            // las criaturas vuelven a su sitio al cambiar de fase
 
         long reward = 2 + _session.Stage / 2;
         _session.State.Essence += reward;
@@ -348,6 +349,12 @@ public partial class ArenaView : Control
         SpawnWave();
         _dirty = true;
         StageAdvanced?.Invoke();
+    }
+
+    private void ResetPositions()
+    {
+        foreach (PlayerUnit u in _units)
+            u.Pos = HomeFor(u);
     }
 
     private void HealUnits(float fraction)
