@@ -32,7 +32,7 @@ public partial class ArenaView : Control
     private const float JumpDuration = 0.5f;
     private const float JumpHeight = 28f;
     private const float JumpRadius = 46f;
-    private const float KiteRange = 42f;
+    private const float KiteRange = 66f;
 
     private static readonly Color RangedColor = new(0.45f, 0.95f, 0.85f);
     private static readonly Color MeleeColor = new(0.45f, 0.72f, 1f);
@@ -451,12 +451,18 @@ public partial class ArenaView : Control
 
             if (u.Role == Role.Ranged)
             {
-                // Kiting: si un enemigo se acerca demasiado, retrocede sin dejar de disparar,
-                // curvando hacia el centro cerca de los bordes (no se acorrala).
-                if (target is not null && u.Pos.DistanceTo(target.Pos) < KiteRange)
-                    u.Pos = ClampToArena(u.Pos + KiteDir(u.Pos, target.Pos) * 58f * dt);
+                // Retaguardia: mantiene distancia. Si un enemigo está cerca, kitea (se aleja,
+                // curvando al centro cerca de los bordes). Si está lejos, NO avanza (se queda
+                // donde está, p.ej. tras esquivar). Solo vuelve a su sitio si NO quedan enemigos.
+                if (target is not null)
+                {
+                    if (u.Pos.DistanceTo(target.Pos) < KiteRange)
+                        u.Pos = ClampToArena(u.Pos + KiteDir(u.Pos, target.Pos) * 62f * dt);
+                }
                 else
+                {
                     u.Pos = u.Pos.MoveToward(home, MeleeSpeed * 0.6f * dt);
+                }
 
                 u.AttackTimer -= dt;
                 if (target is not null && u.AttackTimer <= 0f)
