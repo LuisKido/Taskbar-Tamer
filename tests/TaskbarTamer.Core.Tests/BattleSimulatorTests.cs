@@ -137,8 +137,8 @@ public class BattleSimulatorTests
 
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            [AnatomySlot.Claws] = PartFactory.Create(100, "Abisal", AnatomySlot.Claws, Rarity.Comun, Config),
-            [AnatomySlot.Fangs] = PartFactory.Create(101, "Abisal", AnatomySlot.Fangs, Rarity.Comun, Config),
+            [AnatomySlot.Claws] = PartFactory.Create(100, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config),
+            [AnatomySlot.Fangs] = PartFactory.Create(101, "Abisal", AnatomySlot.Fangs, Rarity.Fresh, Config),
         };
 
         Setup envenenador = Solo(Mk(1, S(hp: 1000, atk: 60, def: 0, spd: 50), equipped));
@@ -160,8 +160,8 @@ public class BattleSimulatorTests
 
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            [AnatomySlot.Claws] = PartFactory.Create(1, "Abisal", AnatomySlot.Claws, Rarity.Comun, Config), // Attack 50
-            [AnatomySlot.Fangs] = PartFactory.Create(2, "Abisal", AnatomySlot.Fangs, Rarity.Comun, Config), // Attack 50
+            [AnatomySlot.Claws] = PartFactory.Create(1, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config), // Attack 50
+            [AnatomySlot.Fangs] = PartFactory.Create(2, "Abisal", AnatomySlot.Fangs, Rarity.Fresh, Config), // Attack 50
         };
         var creature = Mk(1, S(hp: 100, atk: 0, def: 0, spd: 10), equipped);
 

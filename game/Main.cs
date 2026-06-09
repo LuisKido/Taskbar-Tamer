@@ -16,7 +16,7 @@ public partial class Main : Control
 {
     private static readonly Vector2I CompactSize = new(360, 430);
     private static readonly Vector2I BattleSize = new(560, 400);
-    private static readonly Vector2I ManageSize = new(680, 480);
+    private static readonly Vector2I ManageSize = new(680, 540);
     private static readonly Vector2I RecruitSize = new(380, 420);
     private static readonly Vector2I FormationSize = new(460, 440);
 

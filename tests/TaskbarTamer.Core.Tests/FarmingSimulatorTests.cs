@@ -13,7 +13,7 @@ public class FarmingSimulatorTests
     private static Biome SingleEntryBiome(int requiredPower = 0) => new(
         "test-mono",
         requiredPower,
-        new[] { new LootEntry("Abisal", AnatomySlot.Claws, Rarity.Comun, 1) });
+        new[] { new LootEntry("Abisal", AnatomySlot.Claws, Rarity.Fresh, 1) });
 
     /// <summary>Bioma con dos entradas de pesos muy distintos (1 vs 99).</summary>
     private static Biome WeightedBiome() => new(
@@ -21,8 +21,8 @@ public class FarmingSimulatorTests
         0,
         new[]
         {
-            new LootEntry("Raro", AnatomySlot.Fangs, Rarity.Raro, 1),
-            new LootEntry("Comun", AnatomySlot.Claws, Rarity.Comun, 99),
+            new LootEntry("Rookie", AnatomySlot.Fangs, Rarity.Rookie, 1),
+            new LootEntry("Fresh", AnatomySlot.Claws, Rarity.Fresh, 99),
         });
 
     [Fact]
@@ -112,17 +112,17 @@ public class FarmingSimulatorTests
     [Fact]
     public void La_seleccion_respeta_los_pesos()
     {
-        Biome biome = WeightedBiome(); // Raro peso 1, Comun peso 99
+        Biome biome = WeightedBiome(); // Rookie peso 1, Fresh peso 99
         // Config sin tope restrictivo para llegar a 1000 encuentros.
         var cfg = new GameConfig { EncounterIntervalSeconds = 60, OfflineCapSeconds = 10_000_000 };
         FarmingResult r = FarmingSimulator.Resolve(
             new FarmingAssignment(100, 123), biome, 60_000, new IdAllocator(), cfg); // 1000 encuentros
 
-        int comun = r.Loot.Count(p => p.Rarity == Rarity.Comun);
-        int raro = r.Loot.Count(p => p.Rarity == Rarity.Raro);
+        int comun = r.Loot.Count(p => p.Rarity == Rarity.Fresh);
+        int raro = r.Loot.Count(p => p.Rarity == Rarity.Rookie);
 
         Assert.Equal(1000, comun + raro);
-        Assert.True(comun > raro, $"Comun={comun}, Raro={raro}");
+        Assert.True(comun > raro, $"Fresh={comun}, Rookie={raro}");
     }
 
     [Fact]

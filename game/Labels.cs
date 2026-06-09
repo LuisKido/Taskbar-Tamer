@@ -22,23 +22,41 @@ public static class Labels
 
     public static string Rarity(Rarity r) => r switch
     {
-        Core.Model.Rarity.Comun => "Común",
-        Core.Model.Rarity.PocoComun => "Poco común",
-        Core.Model.Rarity.Raro => "Raro",
-        Core.Model.Rarity.Epico => "Épico",
-        Core.Model.Rarity.Legendario => "Legendario",
+        Core.Model.Rarity.Fresh => "Fresh",
+        Core.Model.Rarity.InTraining => "In-Training",
+        Core.Model.Rarity.Rookie => "Rookie",
+        Core.Model.Rarity.Champion => "Champion",
+        Core.Model.Rarity.Ultimate => "Ultimate",
+        Core.Model.Rarity.Mega => "Mega",
+        Core.Model.Rarity.BurstMode => "Burst Mode",
+        Core.Model.Rarity.BioMerge => "BioMerge",
         _ => r.ToString(),
     };
 
     public static Color RarityColor(Rarity r) => r switch
     {
-        Core.Model.Rarity.Comun => new Color(0.80f, 0.80f, 0.80f),
-        Core.Model.Rarity.PocoComun => new Color(0.45f, 0.95f, 0.45f),
-        Core.Model.Rarity.Raro => new Color(0.40f, 0.65f, 1.00f),
-        Core.Model.Rarity.Epico => new Color(0.80f, 0.45f, 1.00f),
-        Core.Model.Rarity.Legendario => new Color(1.00f, 0.70f, 0.20f),
+        Core.Model.Rarity.Fresh => new Color(0.80f, 0.80f, 0.80f),       // gris
+        Core.Model.Rarity.InTraining => new Color(0.45f, 0.95f, 0.45f),  // verde
+        Core.Model.Rarity.Rookie => new Color(0.40f, 0.65f, 1.00f),      // azul
+        Core.Model.Rarity.Champion => new Color(0.80f, 0.45f, 1.00f),    // morado
+        Core.Model.Rarity.Ultimate => new Color(1.00f, 0.70f, 0.20f),    // dorado
+        Core.Model.Rarity.Mega => new Color(1.00f, 0.35f, 0.35f),        // rojo
+        Core.Model.Rarity.BurstMode => new Color(0.35f, 0.95f, 0.95f),   // cian
+        Core.Model.Rarity.BioMerge => new Color(1.00f, 1.00f, 1.00f),    // blanco radiante
         _ => Colors.White,
     };
+
+    /// <summary>Nombre de la habilidad de arena que la criatura obtiene según su anatomía equipada.</summary>
+    public static string AbilityName(Creature c)
+    {
+        if (c.Equipped.ContainsKey(AnatomySlot.Shell) || c.Equipped.ContainsKey(AnatomySlot.Fur) || c.Equipped.ContainsKey(AnatomySlot.Scales))
+            return "Provocar (atrae enemigos)";
+        if (c.Equipped.ContainsKey(AnatomySlot.Wings) || c.Equipped.ContainsKey(AnatomySlot.Tail))
+            return "Embestida (dash + AoE)";
+        if (c.Equipped.ContainsKey(AnatomySlot.Glands) || c.Equipped.ContainsKey(AnatomySlot.Stinger))
+            return "Estallido tóxico (AoE veneno)";
+        return "Tajo (golpe en área)";
+    }
 
     /// <summary>Resumen compacto de las stats no nulas de una parte.</summary>
     public static string PartStats(Part p)

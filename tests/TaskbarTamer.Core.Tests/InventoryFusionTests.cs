@@ -8,20 +8,20 @@ public class InventoryFusionTests
 {
     private static readonly GameConfig Config = GameConfig.Default; // FusionRequirement = 3
 
-    private static Part Comun(IdAllocator ids) =>
-        PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Claws, Rarity.Comun, Config);
+    private static Part Fresh(IdAllocator ids) =>
+        PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config);
 
     [Fact]
     public void Tres_iguales_se_fusionan_en_una_de_rareza_superior()
     {
         var ids = new IdAllocator();
         var inv = new Inventory();
-        for (int i = 0; i < 3; i++) inv.Add(Comun(ids));
+        for (int i = 0; i < 3; i++) inv.Add(Fresh(ids));
 
-        Part? result = inv.Fuse(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Comun), ids, Config);
+        Part? result = inv.Fuse(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Fresh), ids, Config);
 
         Assert.NotNull(result);
-        Assert.Equal(Rarity.PocoComun, result!.Rarity);
+        Assert.Equal(Rarity.InTraining, result!.Rarity);
         Assert.Equal(1, inv.Count); // 3 consumidas, 1 creada
     }
 
@@ -30,24 +30,24 @@ public class InventoryFusionTests
     {
         var ids = new IdAllocator();
         var inv = new Inventory();
-        inv.Add(Comun(ids));
-        inv.Add(Comun(ids));
+        inv.Add(Fresh(ids));
+        inv.Add(Fresh(ids));
 
-        Part? result = inv.Fuse(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Comun), ids, Config);
+        Part? result = inv.Fuse(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Fresh), ids, Config);
 
         Assert.Null(result);
         Assert.Equal(2, inv.Count);
     }
 
     [Fact]
-    public void Legendario_no_puede_fusionarse()
+    public void BioMerge_no_puede_fusionarse()
     {
         var ids = new IdAllocator();
         var inv = new Inventory();
         for (int i = 0; i < 3; i++)
-            inv.Add(PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Claws, Rarity.Legendario, Config));
+            inv.Add(PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Claws, Rarity.BioMerge, Config));
 
-        Part? result = inv.Fuse(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Legendario), ids, Config);
+        Part? result = inv.Fuse(new PartKind("Abisal", AnatomySlot.Claws, Rarity.BioMerge), ids, Config);
 
         Assert.Null(result);
         Assert.Equal(3, inv.Count);
@@ -58,14 +58,14 @@ public class InventoryFusionTests
     {
         var ids = new IdAllocator();
         var inv = new Inventory();
-        for (int i = 0; i < 9; i++) inv.Add(Comun(ids));
+        for (int i = 0; i < 9; i++) inv.Add(Fresh(ids));
 
-        // 9 Comun -> 3 PocoComun -> 1 Raro. Total 4 fusiones.
+        // 9 Fresh -> 3 InTraining -> 1 Rookie. Total 4 fusiones.
         int fusions = inv.AutoFuse(ids, Config);
 
         Assert.Equal(4, fusions);
         Assert.Equal(1, inv.Count);
-        Assert.Equal(Rarity.Raro, inv.Parts[0].Rarity);
+        Assert.Equal(Rarity.Rookie, inv.Parts[0].Rarity);
     }
 
     [Fact]
@@ -73,13 +73,13 @@ public class InventoryFusionTests
     {
         var ids = new IdAllocator();
         var inv = new Inventory();
-        for (int i = 0; i < 4; i++) inv.Add(Comun(ids)); // 3 fusionan, 1 sobra
+        for (int i = 0; i < 4; i++) inv.Add(Fresh(ids)); // 3 fusionan, 1 sobra
 
         int fusions = inv.AutoFuse(ids, Config);
 
         Assert.Equal(1, fusions);
-        Assert.Equal(2, inv.Count); // 1 PocoComun + 1 Comun sobrante
-        Assert.Equal(1, inv.CountOf(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Comun)));
-        Assert.Equal(1, inv.CountOf(new PartKind("Abisal", AnatomySlot.Claws, Rarity.PocoComun)));
+        Assert.Equal(2, inv.Count); // 1 InTraining + 1 Fresh sobrante
+        Assert.Equal(1, inv.CountOf(new PartKind("Abisal", AnatomySlot.Claws, Rarity.Fresh)));
+        Assert.Equal(1, inv.CountOf(new PartKind("Abisal", AnatomySlot.Claws, Rarity.InTraining)));
     }
 }

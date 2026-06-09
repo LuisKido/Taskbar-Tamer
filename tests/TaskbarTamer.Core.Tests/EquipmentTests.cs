@@ -17,7 +17,7 @@ public class EquipmentTests
     [Fact]
     public void Equipar_en_ranura_vacia_no_desplaza_nada()
     {
-        var (creature, displaced) = Equipment.Equip(Bare(), Claws(10, Rarity.Comun));
+        var (creature, displaced) = Equipment.Equip(Bare(), Claws(10, Rarity.Fresh));
 
         Assert.Null(displaced);
         Assert.True(creature.Equipped.ContainsKey(AnatomySlot.Claws));
@@ -27,8 +27,8 @@ public class EquipmentTests
     [Fact]
     public void Equipar_en_ranura_ocupada_desplaza_la_anterior()
     {
-        var (withFirst, _) = Equipment.Equip(Bare(), Claws(10, Rarity.Comun));
-        var (withSecond, displaced) = Equipment.Equip(withFirst, Claws(20, Rarity.Raro));
+        var (withFirst, _) = Equipment.Equip(Bare(), Claws(10, Rarity.Fresh));
+        var (withSecond, displaced) = Equipment.Equip(withFirst, Claws(20, Rarity.Rookie));
 
         Assert.NotNull(displaced);
         Assert.Equal(10, displaced!.Id);                       // la vieja vuelve
@@ -38,7 +38,7 @@ public class EquipmentTests
     [Fact]
     public void Desequipar_retira_y_devuelve_la_parte()
     {
-        var (equipped, _) = Equipment.Equip(Bare(), Claws(10, Rarity.Comun));
+        var (equipped, _) = Equipment.Equip(Bare(), Claws(10, Rarity.Fresh));
         var (bare, removed) = Equipment.Unequip(equipped, AnatomySlot.Claws);
 
         Assert.NotNull(removed);
@@ -58,7 +58,7 @@ public class EquipmentTests
     public void Equipar_mejora_el_poder_efectivo()
     {
         Creature bare = Bare();
-        var (equipped, _) = Equipment.Equip(bare, Claws(10, Rarity.Epico));
+        var (equipped, _) = Equipment.Equip(bare, Claws(10, Rarity.Champion));
 
         Stats before = StatsResolver.Resolve(bare, SetRegistry.Empty).Stats;
         Stats after = StatsResolver.Resolve(equipped, SetRegistry.Empty).Stats;

@@ -17,9 +17,9 @@ public static class Content
         requiredPower: 0,
         new[]
         {
-            new LootEntry("Abisal", AnatomySlot.Fangs, Rarity.Comun, 70),
-            new LootEntry("Abisal", AnatomySlot.Claws, Rarity.Raro, 25),
-            new LootEntry("Abisal", AnatomySlot.Stinger, Rarity.Epico, 5),
+            new LootEntry("Abisal", AnatomySlot.Fangs, Rarity.Fresh, 70),
+            new LootEntry("Abisal", AnatomySlot.Claws, Rarity.Rookie, 25),
+            new LootEntry("Abisal", AnatomySlot.Stinger, Rarity.Champion, 5),
         });
 
     /// <summary>Criatura inicial del jugador, con un par de partes básicas equipadas.</summary>
@@ -27,8 +27,8 @@ public static class Content
     {
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            [AnatomySlot.Claws] = PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Claws, Rarity.Comun, config),
-            [AnatomySlot.Shell] = PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Shell, Rarity.Comun, config),
+            [AnatomySlot.Claws] = PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Claws, Rarity.Fresh, config),
+            [AnatomySlot.Shell] = PartFactory.Create(ids.Next(), "Abisal", AnatomySlot.Shell, Rarity.Fresh, config),
         };
         return new Creature(ids.Next(), "Mordak", new Stats(300, 20, 10, 15, 0, 0, 0, 0), equipped);
     }

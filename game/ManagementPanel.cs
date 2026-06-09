@@ -23,6 +23,7 @@ public partial class ManagementPanel : Control
     private Label _powerLabel = null!;
     private VBoxContainer _rosterBox = null!;
     private VBoxContainer _slotsBox = null!;
+    private Label _statsLabel = null!;
     private Label _invCountLabel = null!;
     private VBoxContainer _invBox = null!;
     private int _lastFusions = -1;
@@ -91,6 +92,11 @@ public partial class ManagementPanel : Control
         _slotsBox.AddThemeConstantOverride("separation", 2);
         left.AddChild(_slotsBox);
 
+        left.AddChild(new HSeparator());
+        _statsLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _statsLabel.AddThemeFontSizeOverride("font_size", 12);
+        left.AddChild(_statsLabel);
+
         body.AddChild(new VSeparator());
 
         var right = new VBoxContainer();
@@ -130,7 +136,26 @@ public partial class ManagementPanel : Control
 
         RefreshRoster();
         RefreshSlots();
+        RefreshStats();
         RefreshInventory();
+    }
+
+    private void RefreshStats()
+    {
+        if (_session.State.Roster.Count == 0)
+        {
+            _statsLabel.Text = "";
+            return;
+        }
+
+        Creature c = _session.State.Roster[_selected];
+        Stats s = StatsResolver.Resolve(c, SetRegistry.Empty).Stats;
+        int dmg = Math.Max(4, (int)(s.Attack * 0.5f));
+
+        _statsLabel.Text =
+            $"❤ Vida {s.MaxHp}    ⚔ Ataque {s.Attack}  (~{dmg}/golpe)\n" +
+            $"🦶 Velocidad {s.Speed}    🎯 Crítico {s.CritChance / 100}%\n" +
+            $"✨ Habilidad: {Labels.AbilityName(c)}";
     }
 
     private void RefreshRoster()
@@ -228,7 +253,7 @@ public partial class ManagementPanel : Control
         {
             Part rep = reps[kind];
             int count = counts[kind];
-            bool fusable = count >= fusionReq && kind.Rarity != Rarity.Legendario;
+            bool fusable = count >= fusionReq && kind.Rarity != Rarity.BioMerge;
             string mark = fusable ? "  ⚗" : "";
 
             var btn = new Button

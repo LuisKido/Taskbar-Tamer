@@ -68,8 +68,8 @@ public sealed class GameSession
     }
 
     /// <summary>
-    /// Botín garantizado al derrotar a un jefe: una parte de rareza alta (Épico, o
-    /// Legendario a partir de fase 20). La añade al inventario y la devuelve. No persiste.
+    /// Botín garantizado al derrotar a un jefe: una parte de rareza alta que escala con
+    /// la fase (Champion → BioMerge). La añade al inventario y la devuelve. No persiste.
     /// </summary>
     public Part GrantBossReward()
     {
@@ -81,7 +81,14 @@ public sealed class GameSession
         string[] families = { "Abisal", "Volcanica", "Espectral" };
         string family = families[rng.NextInt(families.Length)];
 
-        Rarity rarity = State.Stage >= 20 ? Rarity.Legendario : Rarity.Epico;
+        Rarity rarity = State.Stage switch
+        {
+            < 10 => Rarity.Champion,
+            < 20 => Rarity.Ultimate,
+            < 30 => Rarity.Mega,
+            < 40 => Rarity.BurstMode,
+            _ => Rarity.BioMerge,
+        };
 
         var ids = new IdAllocator(State.NextId);
         Part part = PartFactory.Create(ids.Next(), family, slot, rarity, _config);

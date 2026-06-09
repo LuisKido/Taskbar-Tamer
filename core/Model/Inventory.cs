@@ -33,7 +33,7 @@ public sealed class Inventory
     /// </summary>
     public Part? Fuse(PartKind kind, IdAllocator ids, GameConfig config)
     {
-        if (kind.Rarity == Rarity.Legendario)
+        if (kind.Rarity == Rarity.BioMerge)
             return null; // tope de rareza
 
         var toConsume = new List<Part>(config.FusionRequirement);
@@ -73,7 +73,7 @@ public sealed class Inventory
             // Snapshot de los tipos presentes que pueden fusionar.
             var fusableKinds = new HashSet<PartKind>();
             foreach (Part p in _parts)
-                if (p.Rarity != Rarity.Legendario)
+                if (p.Rarity != Rarity.BioMerge)
                     fusableKinds.Add(p.Kind);
 
             foreach (PartKind kind in fusableKinds)

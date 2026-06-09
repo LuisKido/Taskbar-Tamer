@@ -13,8 +13,8 @@ public class SaveSerializerTests
     {
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            [AnatomySlot.Claws] = PartFactory.Create(10, "Abisal", AnatomySlot.Claws, Rarity.Raro, Config),
-            [AnatomySlot.Shell] = PartFactory.Create(11, "Abisal", AnatomySlot.Shell, Rarity.Comun, Config),
+            [AnatomySlot.Claws] = PartFactory.Create(10, "Abisal", AnatomySlot.Claws, Rarity.Rookie, Config),
+            [AnatomySlot.Shell] = PartFactory.Create(11, "Abisal", AnatomySlot.Shell, Rarity.Fresh, Config),
         };
         var traits = new[] { new Trait("t-1", new Stats(0, 25, 0, 0, 0, 0, 0, 0), "veterano: Abisal Claws") };
         var creature = new Creature(1, "alfa", new Stats(120, 10, 8, 6, 0, 0, 0, 0),
@@ -26,7 +26,7 @@ public class SaveSerializerTests
             FarmingRngState = 0xDEADBEEFCAFEUL,
             CurrentBiomeId = "bosque-abisal",
             LastFarmedUnixSeconds = 1_700_000_000,
-            Inventory = { PartFactory.Create(20, "Volcanica", AnatomySlot.Fangs, Rarity.Epico, Config) },
+            Inventory = { PartFactory.Create(20, "Volcanica", AnatomySlot.Fangs, Rarity.Champion, Config) },
             Roster = { creature },
         };
     }
@@ -47,7 +47,7 @@ public class SaveSerializerTests
 
         Assert.Single(restored.Inventory);
         Assert.Equal(20, restored.Inventory[0].Id);
-        Assert.Equal(Rarity.Epico, restored.Inventory[0].Rarity);
+        Assert.Equal(Rarity.Champion, restored.Inventory[0].Rarity);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class SaveSerializerTests
     public void Las_enumeraciones_se_serializan_como_texto()
     {
         string json = SaveSerializer.Serialize(SampleSave());
-        Assert.Contains("Epico", json);   // rareza como texto, no como número
+        Assert.Contains("Champion", json);   // rareza como texto, no como número
         Assert.Contains("Claws", json);   // ranura como texto
     }
 }

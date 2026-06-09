@@ -27,7 +27,9 @@ public readonly record struct Stats(
 
 ## 2. Rareza (`Rarity`)
 
-`Común → PocoComún → Raro → Épico → Legendario`. Afecta a magnitud de stats, número de afijos y peso en tablas de loot.
+8 tiers con tema de evolución (Digimon), de menor a mayor:
+`Fresh → In-Training → Rookie → Champion → Ultimate → Mega → Burst Mode → BioMerge`.
+Afecta a magnitud de stats, número de afijos y peso en tablas de loot. La fusión sube un tier (3 iguales → 1 superior), con tope en **BioMerge**.
 
 ## 3. Parte biológica (`Part`)
 

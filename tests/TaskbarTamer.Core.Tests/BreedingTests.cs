@@ -51,8 +51,8 @@ public class BreedingTests
     {
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            // Claws Comun -> Attack 50.
-            [AnatomySlot.Claws] = PartFactory.Create(7, "Abisal", AnatomySlot.Claws, Rarity.Comun, Config),
+            // Claws Fresh -> Attack 50.
+            [AnatomySlot.Claws] = PartFactory.Create(7, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config),
         };
         var champion = new Creature(1, "veterano", S(100, 0, 0, 0), equipped, level: 30, maxLevel: 30);
 
@@ -67,7 +67,7 @@ public class BreedingTests
         // Campeón al máximo con garras potentes.
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            [AnatomySlot.Claws] = PartFactory.Create(7, "Abisal", AnatomySlot.Claws, Rarity.Epico, Config),
+            [AnatomySlot.Claws] = PartFactory.Create(7, "Abisal", AnatomySlot.Claws, Rarity.Champion, Config),
         };
         var champion = new Creature(1, "veterano", S(100, 0, 0, 0), equipped, level: 30, maxLevel: 30);
 

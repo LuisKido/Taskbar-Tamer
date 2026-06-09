@@ -69,11 +69,14 @@ public sealed class GameConfig
     public static readonly IReadOnlyDictionary<Rarity, int> DefaultRarityBp =
         new Dictionary<Rarity, int>
         {
-            [Rarity.Comun] = 10000,      // x1.0
-            [Rarity.PocoComun] = 13000,  // x1.3
-            [Rarity.Raro] = 17000,       // x1.7
-            [Rarity.Epico] = 22000,      // x2.2
-            [Rarity.Legendario] = 30000, // x3.0
+            [Rarity.Fresh] = 10000,      // x1.0
+            [Rarity.InTraining] = 13000, // x1.3
+            [Rarity.Rookie] = 17000,     // x1.7
+            [Rarity.Champion] = 22000,   // x2.2
+            [Rarity.Ultimate] = 30000,   // x3.0
+            [Rarity.Mega] = 42000,       // x4.2
+            [Rarity.BurstMode] = 60000,  // x6.0
+            [Rarity.BioMerge] = 85000,   // x8.5
         };
 
     /// <summary>Configuración por defecto, lista para usar.</summary>
