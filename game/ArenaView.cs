@@ -451,9 +451,10 @@ public partial class ArenaView : Control
 
             if (u.Role == Role.Ranged)
             {
-                // Kiting: si un enemigo se acerca demasiado, retrocede sin dejar de disparar.
+                // Kiting: si un enemigo se acerca demasiado, retrocede sin dejar de disparar,
+                // curvando hacia el centro cerca de los bordes (no se acorrala).
                 if (target is not null && u.Pos.DistanceTo(target.Pos) < KiteRange)
-                    u.Pos = ClampToArena(u.Pos + Dir(target.Pos, u.Pos) * 58f * dt);
+                    u.Pos = ClampToArena(u.Pos + KiteDir(u.Pos, target.Pos) * 58f * dt);
                 else
                     u.Pos = u.Pos.MoveToward(home, MeleeSpeed * 0.6f * dt);
 
@@ -536,8 +537,11 @@ public partial class ArenaView : Control
                 break;
 
             case Ability.DashDodge:
+                // Evasivo: se aleja del enemigo más cercano (o del grueso de la horda).
+                Enemy? threat = NearestEnemy(u.Pos);
+                Vector2 away = threat is not null ? Dir(threat.Pos, u.Pos) : Dir(EnemyCentroid(), u.Pos);
                 u.DashFrom = u.Pos;
-                u.DashTo = ClampToArena(EnemyCentroid());
+                u.DashTo = ClampToArena(u.Pos + away * 82f);
                 u.DashTime = DashDuration;
                 u.IsJump = false;
                 u.InvulnTimer = DashDuration + 0.9f; // invulnerable mientras esquiva
@@ -612,6 +616,19 @@ public partial class ArenaView : Control
 
     private Vector2 ClampToArena(Vector2 p)
         => new(Math.Clamp(p.X, 8f, Math.Max(9f, Size.X - 8f)), Math.Clamp(p.Y, 8f, Math.Max(9f, Size.Y - 8f)));
+
+    // Dirección de kiteo: alejarse del enemigo, pero tirar hacia el centro cuanto más
+    // cerca se está de un borde, para no quedar acorralado contra la pared.
+    private Vector2 KiteDir(Vector2 pos, Vector2 enemyPos)
+    {
+        Vector2 away = Dir(enemyPos, pos);
+        const float margin = 36f;
+        float distEdge = Math.Min(Math.Min(pos.X, Size.X - pos.X), Math.Min(pos.Y, Size.Y - pos.Y));
+        float edge = Math.Clamp(1f - distEdge / margin, 0f, 1f);
+        Vector2 toCenter = Dir(pos, Size / 2f);
+        Vector2 dir = away + toCenter * (edge * 1.5f);
+        return dir.LengthSquared() > 0.0001f ? dir.Normalized() : toCenter;
+    }
 
     private void UpdateEnemies(float dt)
     {
