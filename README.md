@@ -26,6 +26,7 @@ Gestionas un equipo de criaturas que farmean en segundo plano mientras usas tu P
 | [03 — Modelo de datos](docs/03-modelo-datos.md) | Esquemas: criaturas, partes, sets, estadísticas, rarezas |
 | [04 — Roadmap](docs/04-roadmap.md) | Fases de desarrollo y orden de construcción |
 | [05 — Ideas / evolución](docs/05-ideas-evolucion.md) | Backlog de mecánicas de evolución (tema Digimon) para profundidad futura |
+| [06 — Economía / mercado](docs/06-economia-mercado.md) | Decisiones: drops por semilla, escasez, y Steam Market sano (mercado de poder + ranked normalizado) |
 
 ## Principio rector
 
