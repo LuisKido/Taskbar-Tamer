@@ -87,15 +87,25 @@ public partial class ManagementPanel : Control
         _rosterBox = new VBoxContainer();
         left.AddChild(_rosterBox);
 
-        left.AddChild(new Label { Text = "Ranuras de anatomía" });
-        _slotsBox = new VBoxContainer();
-        _slotsBox.AddThemeConstantOverride("separation", 2);
-        left.AddChild(_slotsBox);
-
+        // Ficha de la criatura seleccionada (siempre visible): stats + habilidad.
         left.AddChild(new HSeparator());
         _statsLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _statsLabel.AddThemeFontSizeOverride("font_size", 12);
         left.AddChild(_statsLabel);
+
+        left.AddChild(new HSeparator());
+        left.AddChild(new Label { Text = "Ranuras de anatomía" });
+
+        // Las ranuras (hasta 9) van en un scroll para no empujar la ficha fuera de vista.
+        var slotScroll = new ScrollContainer();
+        slotScroll.SizeFlagsVertical = SizeFlags.ExpandFill;
+        slotScroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+        left.AddChild(slotScroll);
+
+        _slotsBox = new VBoxContainer();
+        _slotsBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _slotsBox.AddThemeConstantOverride("separation", 2);
+        slotScroll.AddChild(_slotsBox);
 
         body.AddChild(new VSeparator());
 

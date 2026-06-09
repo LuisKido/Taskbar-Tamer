@@ -399,7 +399,9 @@ public partial class ArenaView : Control
         _session.RetreatToMapStart();
         ShowBanner("💀 ¡DERROTA! Te retiras al inicio del mapa");
         SpawnShake(7f);
-        BuildUnits(); // revive a tope al reiniciar el mapa
+        _enemies.Clear(); // ¡importante! limpia la horda que te venció (si no, se acumulan)
+        _shots.Clear();
+        BuildUnits();     // revive a tope al reiniciar el mapa
         SpawnWave();
         _dirty = true;
         StageAdvanced?.Invoke();
