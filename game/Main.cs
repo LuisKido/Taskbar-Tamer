@@ -122,7 +122,7 @@ public partial class Main : Control
         manageButton.Pressed += OnManagePressed;
         rowManage.AddChild(manageButton);
 
-        var recruitButton = new Button { Text = "➕ Reclutar", FocusMode = FocusModeEnum.None };
+        var recruitButton = new Button { Text = "🔓 Desbloquear", FocusMode = FocusModeEnum.None };
         recruitButton.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         recruitButton.Pressed += OnRecruitPressed;
         rowManage.AddChild(recruitButton);

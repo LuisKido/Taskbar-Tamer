@@ -1,13 +1,14 @@
 using Godot;
 using System;
+using TaskbarTamer.Core.Data;
 using TaskbarTamer.Core.Model;
-using TaskbarTamer.Core.Simulation;
 
 namespace TaskbarTamer.Game;
 
 /// <summary>
-/// Pantalla dedicada al reclutamiento de criaturas. Separada de la gestión de equipo:
-/// aquí solo se gasta esencia genética para incorporar criaturas nuevas al roster.
+/// Colección de criaturas: existe <b>una criatura por habilidad</b> y se <b>desbloquean</b>
+/// con esencia genética (no se reclutan al azar). Muestra las especies, su habilidad y su
+/// estado (desbloqueada o coste).
 /// </summary>
 public partial class RecruitPanel : Control
 {
@@ -15,9 +16,7 @@ public partial class RecruitPanel : Control
 
     private GameSession _session = null!;
     private Label _essenceLabel = null!;
-    private Button _recruitButton = null!;
-    private Label _resultLabel = null!;
-    private VBoxContainer _rosterBox = null!;
+    private VBoxContainer _listBox = null!;
 
     public void Begin(GameSession session)
     {
@@ -42,81 +41,96 @@ public partial class RecruitPanel : Control
         bg.AddChild(margin);
 
         var root = new VBoxContainer();
-        root.AddThemeConstantOverride("separation", 10);
+        root.AddThemeConstantOverride("separation", 8);
         margin.AddChild(root);
 
-        // Cabecera
         var header = new HBoxContainer();
         root.AddChild(header);
-        var title = new Label { Text = "🧬 Reclutar criatura", ClipText = true };
+        var title = new Label { Text = "🔓 Desbloquear criaturas", ClipText = true };
         title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         header.AddChild(title);
         var back = new Button { Text = "Volver", FocusMode = FocusModeEnum.None };
         back.Pressed += Close;
         header.AddChild(back);
 
-        root.AddChild(new HSeparator());
-
         _essenceLabel = new Label();
         root.AddChild(_essenceLabel);
 
-        _recruitButton = new Button { FocusMode = FocusModeEnum.None };
-        _recruitButton.Pressed += OnRecruitPressed;
-        root.AddChild(_recruitButton);
-
-        _resultLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
-        _resultLabel.Modulate = new Color(0.6f, 0.9f, 0.6f);
-        root.AddChild(_resultLabel);
+        var hint = new Label { Text = "Hay 1 criatura por habilidad. Fármea esencia para desbloquearlas." };
+        hint.Modulate = new Color(1, 1, 1, 0.5f);
+        hint.AddThemeFontSizeOverride("font_size", 11);
+        root.AddChild(hint);
 
         root.AddChild(new HSeparator());
-        root.AddChild(new Label { Text = "Tu equipo" });
 
         var scroll = new ScrollContainer();
         scroll.SizeFlagsVertical = SizeFlags.ExpandFill;
         scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
         root.AddChild(scroll);
 
-        _rosterBox = new VBoxContainer();
-        _rosterBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        scroll.AddChild(_rosterBox);
-    }
-
-    private void OnRecruitPressed()
-    {
-        Creature? recruited = _session.Recruit();
-        if (recruited is not null)
-        {
-            Stats s = recruited.Innate;
-            _resultLabel.Text = $"¡{recruited.Name} se unió!  ({s.MaxHp} vida · {s.Attack} atk · {s.Speed} vel)";
-        }
-        Refresh();
+        _listBox = new VBoxContainer();
+        _listBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _listBox.AddThemeConstantOverride("separation", 6);
+        scroll.AddChild(_listBox);
     }
 
     private void Refresh()
     {
-        var state = _session.State;
-        _essenceLabel.Text = $"Esencia genética: {state.Essence}";
+        _essenceLabel.Text = $"Esencia genética: {_session.State.Essence}";
 
-        _recruitButton.Text = $"➕ Reclutar  ·  coste {_session.RecruitCost}";
-        _recruitButton.Disabled = !_session.CanRecruit;
-        _recruitButton.TooltipText = _session.CanRecruit
-            ? "Incorpora una criatura nueva al equipo"
-            : "Necesitas más esencia (fármea para conseguirla)";
-
-        foreach (Node child in _rosterBox.GetChildren())
+        foreach (Node child in _listBox.GetChildren())
         {
-            _rosterBox.RemoveChild(child);
+            _listBox.RemoveChild(child);
             child.QueueFree();
         }
-        foreach (Creature c in state.Roster)
+
+        foreach (Archetype a in _session.AllArchetypes)
+            _listBox.AddChild(BuildRow(a));
+    }
+
+    private Control BuildRow(Archetype a)
+    {
+        bool unlocked = _session.IsUnlocked(a);
+
+        var panel = new PanelContainer();
+        var m = new MarginContainer();
+        foreach (string side in new[] { "left", "right", "top", "bottom" })
+            m.AddThemeConstantOverride($"margin_{side}", 8);
+        panel.AddChild(m);
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 8);
+        m.AddChild(row);
+
+        var info = new Label
         {
-            int power = PowerRating.Of(new[] { c }, SetRegistry.Empty);
-            _rosterBox.AddChild(new Label
-            {
-                Text = $"• {c.Name}  ·  poder {power}",
-                ClipText = true,
-            });
+            Text = $"{Content.SpeciesName(a)}\n✨ {Labels.AbilityName(a)}",
+            ClipText = true,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        if (!unlocked)
+            info.Modulate = new Color(0.7f, 0.7f, 0.7f);
+        row.AddChild(info);
+
+        if (unlocked)
+        {
+            row.AddChild(new Label { Text = "✓ Desbloqueada", Modulate = new Color(0.5f, 0.95f, 0.6f) });
         }
+        else
+        {
+            var btn = new Button
+            {
+                Text = $"🔓 {_session.UnlockCost(a)}",
+                FocusMode = FocusModeEnum.None,
+                Disabled = !_session.CanUnlock(a),
+                TooltipText = _session.CanUnlock(a) ? "Desbloquear" : "Necesitas más esencia",
+            };
+            Archetype arch = a;
+            btn.Pressed += () => { _session.Unlock(arch); Refresh(); };
+            row.AddChild(btn);
+        }
+
+        return panel;
     }
 
     private void Close()

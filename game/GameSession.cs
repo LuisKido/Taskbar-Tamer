@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using TaskbarTamer.Core;
 using TaskbarTamer.Core.Rng;
@@ -285,27 +286,28 @@ public sealed class GameSession
         return result;
     }
 
-    /// <summary>Coste actual de reclutar (escala con el tamaño del roster).</summary>
-    public long RecruitCost => _config.RecruitBaseCost * Math.Max(1, State.Roster.Count);
+    // ---------- Colección: desbloquear criaturas (1 por habilidad) ----------
 
-    public bool CanRecruit => State.Essence >= RecruitCost;
+    /// <summary>Todos los arquetipos del juego (en orden de colección).</summary>
+    public IReadOnlyList<Archetype> AllArchetypes => Content.Archetypes;
 
-    /// <summary>Recluta una criatura nueva gastando esencia. Devuelve la criatura o null si no alcanza.</summary>
-    public Creature? Recruit()
+    /// <summary>¿Está ya en el roster esta criatura/arquetipo? (sólo hay 1 por arquetipo).</summary>
+    public bool IsUnlocked(Archetype a) => State.Roster.Any(c => c.Archetype == a);
+
+    public long UnlockCost(Archetype a) => Content.UnlockCost(a);
+
+    public bool CanUnlock(Archetype a) => !IsUnlocked(a) && State.Essence >= Content.UnlockCost(a);
+
+    /// <summary>Desbloquea la criatura de un arquetipo gastando esencia. Devuelve la criatura o null.</summary>
+    public Creature? Unlock(Archetype a)
     {
-        long cost = RecruitCost;
-        if (State.Essence < cost)
+        if (IsUnlocked(a) || State.Essence < Content.UnlockCost(a))
             return null;
 
-        State.Essence -= cost;
+        State.Essence -= Content.UnlockCost(a);
 
         var ids = new IdAllocator(State.NextId);
-        long newId = ids.Next();
-        // Semilla derivada del estado actual; la criatura queda persistida, así que no
-        // necesitamos reproducibilidad tras recargar.
-        ulong seed = State.FarmingRngState + (ulong)newId * 2654435761UL;
-        Creature creature = CreatureFactory.Roll(newId, seed);
-
+        Creature creature = Content.CreateSpecies(a, ids);
         State.NextId = ids.Peek;
         State.Roster.Add(creature);
         Save();

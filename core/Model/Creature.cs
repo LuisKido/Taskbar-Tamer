@@ -25,6 +25,9 @@ public sealed class Creature
     public int MaxLevel { get; }
     public long Xp { get; }
 
+    /// <summary>Arquetipo/especie: define la habilidad de arena intrínseca.</summary>
+    public Archetype Archetype { get; }
+
     public Creature(
         long id,
         string name,
@@ -33,7 +36,8 @@ public sealed class Creature
         IReadOnlyList<Trait>? traits = null,
         int level = 1,
         int maxLevel = 30,
-        long xp = 0)
+        long xp = 0,
+        Archetype archetype = Archetype.Bruiser)
     {
         Id = id;
         Name = name;
@@ -43,13 +47,14 @@ public sealed class Creature
         Level = level;
         MaxLevel = maxLevel;
         Xp = xp;
+        Archetype = archetype;
     }
 
-    /// <summary>Crea una copia cambiando solo los campos indicados.</summary>
+    /// <summary>Crea una copia cambiando solo los campos indicados (conserva el arquetipo).</summary>
     public Creature With(
         int? level = null,
         long? xp = null,
         IReadOnlyList<Trait>? traits = null,
         IReadOnlyDictionary<AnatomySlot, Part>? equipped = null) =>
-        new(Id, Name, Innate, equipped ?? Equipped, traits ?? Traits, level ?? Level, MaxLevel, xp ?? Xp);
+        new(Id, Name, Innate, equipped ?? Equipped, traits ?? Traits, level ?? Level, MaxLevel, xp ?? Xp, Archetype);
 }

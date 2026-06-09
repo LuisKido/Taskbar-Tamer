@@ -40,7 +40,7 @@
 - [x] Persistencia: `SaveStore` (I/O en `user://`) + `GameSession` (carga/crea, progreso offline al abrir). Verificado end-to-end.
 - [x] Panel de gestión: roster, ranuras de anatomía por criatura, inventario, equipar/desequipar partes (con poder en vivo).
 - [x] Inventario agrupado por tipo (×N) + **fusión en la UI** (botón "Fusionar todo", cascada).
-- [x] Reclutamiento de criaturas: el farming da **esencia genética**; `CreatureFactory` genera criaturas nuevas (coste escalable). Roster multi-criatura.
+- [x] Colección de criaturas: **1 criatura por habilidad** (arquetipo intrínseco). Se **desbloquean** con esencia genética (no se reclutan al azar). 5 especies: Guardian/Bruiser/Charger/Leaper/Venomous.
 - [x] Editor de formación: coloca criaturas en frontal/retaguardia/banca (máx. por línea); la batalla usa la formación guardada.
 - [x] Reproductor de batalla: anima el log de eventos del simulador (barras de vida, golpes, críticos, veneno, K.O., desenlace). No recalcula.
 - [x] **Arena en vivo**: auto-battler visual continuo (criaturas vs hordas) que avanza de Fase mientras el juego está abierto; daño escala con el poder del equipo. + heartbeat de farming en vivo (loot/esencia suben mientras lo ves).

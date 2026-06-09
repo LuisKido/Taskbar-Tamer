@@ -248,31 +248,25 @@ public partial class ArenaView : Control
         };
     }
 
-    // La habilidad activa depende de la anatomía equipada (decide la táctica del equipo).
-    private static Ability AbilityFor(Creature c)
+    // La habilidad es intrínseca del arquetipo de la criatura (1 criatura por habilidad).
+    private static Ability AbilityFor(Creature c) => c.Archetype switch
     {
-        if (c.Equipped.ContainsKey(AnatomySlot.Shell) || c.Equipped.ContainsKey(AnatomySlot.Fur) || c.Equipped.ContainsKey(AnatomySlot.Scales))
-            return Ability.Taunt;
-        if (c.Equipped.ContainsKey(AnatomySlot.Wings))
-            return Ability.Dash;
-        if (c.Equipped.ContainsKey(AnatomySlot.Tail))
-            return Ability.Jump;
-        if (c.Equipped.ContainsKey(AnatomySlot.Glands) || c.Equipped.ContainsKey(AnatomySlot.Stinger))
-            return Ability.VenomNova;
-        return Ability.Cleave;
-    }
+        Archetype.Guardian => Ability.Taunt,
+        Archetype.Charger => Ability.Dash,
+        Archetype.Leaper => Ability.Jump,
+        Archetype.Venomous => Ability.VenomNova,
+        _ => Ability.Cleave, // Bruiser
+    };
 
-    // El color del ataque depende de la anatomía ofensiva equipada (tipo de daño).
-    private static Color AttackColorFor(Creature c)
+    // El color del ataque es la firma del arquetipo de la criatura.
+    private static Color AttackColorFor(Creature c) => c.Archetype switch
     {
-        if (c.Equipped.ContainsKey(AnatomySlot.Stinger) || c.Equipped.ContainsKey(AnatomySlot.Glands))
-            return VenomColor; // veneno
-        if (c.Equipped.ContainsKey(AnatomySlot.Fangs))
-            return FangColor;  // físico (colmillos)
-        if (c.Equipped.ContainsKey(AnatomySlot.Claws))
-            return ClawColor;  // corte (garras)
-        return DefaultShotColor;
-    }
+        Archetype.Venomous => VenomColor,                  // verde
+        Archetype.Bruiser => FangColor,                    // rojo
+        Archetype.Charger => new Color(0.4f, 0.95f, 0.95f),// cian
+        Archetype.Leaper => new Color(0.7f, 0.5f, 1f),     // morado
+        _ => DefaultShotColor,                             // Guardian (dorado)
+    };
 
     // Las criaturas se agrupan en el centro de la arena (en columna vertical). Las melee
     // salen a interceptar y vuelven; las de distancia se quedan aquí disparando.

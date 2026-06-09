@@ -46,19 +46,17 @@ public static class Labels
         _ => Colors.White,
     };
 
-    /// <summary>Nombre de la habilidad de arena que la criatura obtiene según su anatomía equipada.</summary>
-    public static string AbilityName(Creature c)
+    /// <summary>Nombre de la habilidad de arena intrínseca del arquetipo de la criatura.</summary>
+    public static string AbilityName(Creature c) => AbilityName(c.Archetype);
+
+    public static string AbilityName(Archetype a) => a switch
     {
-        if (c.Equipped.ContainsKey(AnatomySlot.Shell) || c.Equipped.ContainsKey(AnatomySlot.Fur) || c.Equipped.ContainsKey(AnatomySlot.Scales))
-            return "Provocar (atrae enemigos)";
-        if (c.Equipped.ContainsKey(AnatomySlot.Wings))
-            return "Embestida (dash + AoE)";
-        if (c.Equipped.ContainsKey(AnatomySlot.Tail))
-            return "Salto (brinco + golpe)";
-        if (c.Equipped.ContainsKey(AnatomySlot.Glands) || c.Equipped.ContainsKey(AnatomySlot.Stinger))
-            return "Estallido tóxico (AoE veneno)";
-        return "Tajo (golpe en área)";
-    }
+        Core.Model.Archetype.Guardian => "Provocar (atrae enemigos)",
+        Core.Model.Archetype.Charger => "Embestida (dash + AoE)",
+        Core.Model.Archetype.Leaper => "Salto (brinco + golpe)",
+        Core.Model.Archetype.Venomous => "Estallido tóxico (AoE veneno)",
+        _ => "Tajo (golpe en área)", // Bruiser
+    };
 
     /// <summary>Resumen compacto de las stats no nulas de una parte.</summary>
     public static string PartStats(Part p)
