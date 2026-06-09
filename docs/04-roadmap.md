@@ -53,6 +53,7 @@
   - [x] Criaturas estilo "sprite" (cuerpo + ojos), barra de jefe arriba, partículas (disparo/impacto/estela), color de ataque según anatomía ofensiva.
   - [x] Combate inteligente: criaturas centradas + enemigos desde varios lados; ojos que miran al objetivo; **habilidades activas por arquetipo** (Provocar, **Ráfaga**/proyectil pesado a distancia, **Esquiva**/dash+invulnerable, Salto, Estallido tóxico) con cooldown y brillo; retaguardia con *kiting*.
   - [x] Arena más grande (más espacio para movimiento); **equipo visible** en las criaturas (caparazón, pinchos, alas, cola) tintado por la rareza equipada.
+  - [x] **Arte por especie**: cada arquetipo con silueta propia (Guardian visera, Bruiser cuernos, Charger morro, Leaper patas, Venomous antena) + enemigos blob con pinchos y jefes con cuernos.
 - [ ] Modo compacto ↔ expandido.
 
 ## Fase 4 — Crianza y progresión a largo plazo

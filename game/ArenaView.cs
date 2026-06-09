@@ -68,6 +68,7 @@ public partial class ArenaView : Control
         public Vector2 Pos;
         public Vector2 Facing = Vector2.Right;
         public int Order;
+        public Archetype Archetype;
         public Role Role;
         public int LaneIndex;
         public int LaneCount;
@@ -231,6 +232,7 @@ public partial class ArenaView : Control
 
         return new PlayerUnit
         {
+            Archetype = creature.Archetype,
             Role = role,
             LaneIndex = laneIndex,
             LaneCount = laneCount,
@@ -905,7 +907,7 @@ public partial class ArenaView : Control
 
             Vector2 dp = new Vector2(u.Pos.X, u.Pos.Y + u.VisualY);
             Color body = u.HitFlash > 0f ? new Color(1f, 0.7f, 0.7f) : u.Color;
-            DrawCreature(dp, u.Radius, body, u.Facing, enemy: false);
+            DrawAlly(dp, u.Radius, body, u.Facing, u.Archetype);
             DrawEquipment(dp, u.Radius, u, u.Facing);
             if (u.InvulnTimer > 0f) // escudo de esquiva
             {
@@ -930,7 +932,7 @@ public partial class ArenaView : Control
             if (e.IsBoss) boss = e;
             Color baseCol = e.IsBoss ? Darken(map.EnemyColor) : map.EnemyColor;
             Color body = e.HitFlash > 0f ? Colors.White : baseCol;
-            DrawCreature(e.Pos, e.Radius, body, e.Facing, enemy: true);
+            DrawEnemy(e.Pos, e.Radius, body, e.Facing, e.IsBoss);
             if (!e.IsBoss)
                 DrawBar(new Vector2(e.Pos.X - 9f, e.Pos.Y - e.Radius - 6f), 18f, e.Hp / e.MaxHp, EnemyHpColor);
         }
@@ -989,25 +991,102 @@ public partial class ArenaView : Control
         DrawString(font, new Vector2(margin, y + 22f), $"👹 {map.BossName}", HorizontalAlignment.Left, w, 12, new Color(1f, 0.85f, 0.85f, 0.9f));
     }
 
-    // "Sprite" simple: cuerpo + contorno + ojos que miran hacia el objetivo (facing).
-    private void DrawCreature(Vector2 pos, float r, Color body, Vector2 facing, bool enemy)
-    {
-        DrawCircle(pos, r, body);
-        DrawArc(pos, r, 0f, Mathf.Tau, 22, new Color(0f, 0f, 0f, 0.35f), 1.5f);
+    private void Tri(Vector2 a, Vector2 b, Vector2 c, Color col) => DrawColoredPolygon(new[] { a, b, c }, col);
 
-        Vector2 f = facing.LengthSquared() > 0.001f ? facing.Normalized() : (enemy ? Vector2.Left : Vector2.Right);
+    private static Color Feat(Color body) => new(body.R * 0.6f, body.G * 0.6f, body.B * 0.6f);
+
+    private void DrawEyes(Vector2 pos, float r, Vector2 f, bool enemy)
+    {
         Vector2 perp = new Vector2(-f.Y, f.X);
         float eyeR = r * 0.24f;
-        Vector2 eyeCenter = pos + f * (r * 0.30f);
-        Vector2 eyeA = eyeCenter + perp * (r * 0.30f);
-        Vector2 eyeB = eyeCenter - perp * (r * 0.30f);
-        DrawCircle(eyeA, eyeR, Colors.White);
-        DrawCircle(eyeB, eyeR, Colors.White);
+        Vector2 c = pos + f * (r * 0.30f);
+        Vector2 a = c + perp * (r * 0.30f);
+        Vector2 b = c - perp * (r * 0.30f);
+        DrawCircle(a, eyeR, Colors.White);
+        DrawCircle(b, eyeR, Colors.White);
+        Color pupil = enemy ? new Color(0.85f, 0.12f, 0.12f) : new Color(0.1f, 0.1f, 0.15f);
+        Vector2 po = f * (eyeR * 0.45f);
+        DrawCircle(a + po, eyeR * 0.5f, pupil);
+        DrawCircle(b + po, eyeR * 0.5f, pupil);
+    }
 
-        Color pupil = enemy ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.1f, 0.1f, 0.15f);
-        Vector2 pupilOff = f * (eyeR * 0.45f);
-        DrawCircle(eyeA + pupilOff, eyeR * 0.5f, pupil);
-        DrawCircle(eyeB + pupilOff, eyeR * 0.5f, pupil);
+    private void DrawSpike(Vector2 basePos, Vector2 dir, float length, float halfWidth, Color col)
+    {
+        Vector2 d = dir.LengthSquared() > 0.0001f ? dir.Normalized() : Vector2.Up;
+        Vector2 p = new Vector2(-d.Y, d.X);
+        Tri(basePos + p * halfWidth, basePos - p * halfWidth, basePos + d * length, col);
+    }
+
+    // Silueta propia de cada especie (sobre el círculo base, para que el equipo encaje encima).
+    private void DrawAlly(Vector2 pos, float r, Color body, Vector2 facing, Archetype arch)
+    {
+        Vector2 f = facing.LengthSquared() > 0.001f ? facing.Normalized() : Vector2.Right;
+        Vector2 perp = new Vector2(-f.Y, f.X);
+        Vector2 up = new Vector2(0f, -1f), down = new Vector2(0f, 1f);
+        Color feat = Feat(body);
+
+        switch (arch)
+        {
+            case Archetype.Charger: // esbelto: morro hacia adelante
+                Tri(pos + perp * (r * 0.55f), pos - perp * (r * 0.55f), pos + f * (r * 1.6f), body);
+                DrawCircle(pos, r, body);
+                break;
+
+            case Archetype.Bruiser: // dos cuernos
+                DrawCircle(pos, r, body);
+                DrawSpike(pos + perp * (r * 0.5f) + up * (r * 0.45f), up + perp * 0.3f, r * 0.8f, 2f, feat);
+                DrawSpike(pos - perp * (r * 0.5f) + up * (r * 0.45f), up - perp * 0.3f, r * 0.8f, 2f, feat);
+                break;
+
+            case Archetype.Leaper: // patas traseras (resorte)
+                DrawSpike(pos + perp * (r * 0.45f) + down * (r * 0.4f), down + perp * 0.4f, r * 0.85f, 2.5f, feat);
+                DrawSpike(pos - perp * (r * 0.45f) + down * (r * 0.4f), down - perp * 0.4f, r * 0.85f, 2.5f, feat);
+                DrawCircle(pos, r, body);
+                break;
+
+            case Archetype.Venomous: // antena + glándulas
+                DrawCircle(pos, r, body);
+                Vector2 a0 = pos + up * r, a1 = a0 + up * (r * 0.7f);
+                DrawLine(a0, a1, feat, 2f);
+                DrawCircle(a1, r * 0.2f, VenomColor);
+                DrawCircle(pos + perp * (r * 0.4f) + down * (r * 0.2f), r * 0.16f, VenomColor);
+                DrawCircle(pos - perp * (r * 0.4f) + down * (r * 0.2f), r * 0.16f, VenomColor);
+                break;
+
+            default: // Guardian: robusto con visera
+                DrawCircle(pos, r, body);
+                DrawLine(pos + perp * (r * 0.75f) + up * (r * 0.12f), pos - perp * (r * 0.75f) + up * (r * 0.12f), feat, 3.5f);
+                break;
+        }
+
+        float ow = arch == Archetype.Guardian ? 2.5f : 1.5f;
+        DrawArc(pos, r, 0f, Mathf.Tau, 22, new Color(0f, 0f, 0f, 0.35f), ow);
+        DrawEyes(pos, r, f, enemy: false);
+    }
+
+    // Enemigo: blob con pinchos; el jefe añade cuernos.
+    private void DrawEnemy(Vector2 pos, float r, Color body, Vector2 facing, bool boss)
+    {
+        Vector2 f = facing.LengthSquared() > 0.001f ? facing.Normalized() : Vector2.Left;
+        Color feat = Feat(body);
+
+        DrawCircle(pos, r, body);
+        int spikes = boss ? 9 : 6;
+        float len = boss ? 7f : 4f;
+        for (int k = 0; k < spikes; k++)
+        {
+            float ang = k * Mathf.Tau / spikes;
+            Vector2 d = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+            DrawSpike(pos + d * r, d, len, 2f, feat);
+        }
+        if (boss)
+        {
+            Vector2 up = new Vector2(0f, -1f), perp = new Vector2(-f.Y, f.X);
+            DrawSpike(pos + perp * (r * 0.5f) + up * (r * 0.55f), up + perp * 0.3f, r * 1.0f, 3f, feat);
+            DrawSpike(pos - perp * (r * 0.5f) + up * (r * 0.55f), up - perp * 0.3f, r * 1.0f, 3f, feat);
+        }
+        DrawArc(pos, r, 0f, Mathf.Tau, 22, new Color(0f, 0f, 0f, 0.35f), 1.5f);
+        DrawEyes(pos, r, f, enemy: true);
     }
 
     // Dibuja la anatomía equipada sobre la criatura (para que equipar se note), tintada
