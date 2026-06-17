@@ -193,6 +193,7 @@ public partial class ArenaView : Control
     private float _pulseT;
     private PlayerUnit? _tauntUnit;
     private float _tauntTimer;
+    private ImageTexture? _bodyTex;
 
     private MapDef CurrentMap => Maps[((_session.Stage - 1) / MapBand) % Maps.Length];
     private bool IsBossStage => _session.Stage % MapBand == 0;
@@ -201,6 +202,7 @@ public partial class ArenaView : Control
     {
         _session = session;
         CustomMinimumSize = new Vector2(0, 150);
+        _bodyTex ??= SpriteFactory.BakeSphere(64); // sprite de cuerpo horneado una vez
         BuildUnits();
         SpawnWave();
     }
@@ -1040,6 +1042,15 @@ public partial class ArenaView : Control
 
     private void Tri(Vector2 a, Vector2 b, Vector2 c, Color col) => DrawColoredPolygon(new[] { a, b, c }, col);
 
+    // Cuerpo de la criatura: textura de esfera sombreada (horneada) tintada por color.
+    private void DrawBody(Vector2 pos, float r, Color col)
+    {
+        if (_bodyTex is null)
+            DrawCircle(pos, r, col);
+        else
+            DrawTextureRect(_bodyTex, new Rect2(pos.X - r, pos.Y - r, r * 2f, r * 2f), false, col);
+    }
+
     private static Color Feat(Color body) => new(body.R * 0.6f, body.G * 0.6f, body.B * 0.6f);
 
     private void DrawEyes(Vector2 pos, float r, Vector2 f, bool enemy)
@@ -1076,11 +1087,11 @@ public partial class ArenaView : Control
         {
             case Archetype.Charger: // esbelto: morro hacia adelante
                 Tri(pos + perp * (r * 0.55f), pos - perp * (r * 0.55f), pos + f * (r * 1.6f), body);
-                DrawCircle(pos, r, body);
+                DrawBody(pos, r, body);
                 break;
 
             case Archetype.Bruiser: // dos cuernos
-                DrawCircle(pos, r, body);
+                DrawBody(pos, r, body);
                 DrawSpike(pos + perp * (r * 0.5f) + up * (r * 0.45f), up + perp * 0.3f, r * 0.8f, 2f, feat);
                 DrawSpike(pos - perp * (r * 0.5f) + up * (r * 0.45f), up - perp * 0.3f, r * 0.8f, 2f, feat);
                 break;
@@ -1088,11 +1099,11 @@ public partial class ArenaView : Control
             case Archetype.Leaper: // patas traseras (resorte)
                 DrawSpike(pos + perp * (r * 0.45f) + down * (r * 0.4f), down + perp * 0.4f, r * 0.85f, 2.5f, feat);
                 DrawSpike(pos - perp * (r * 0.45f) + down * (r * 0.4f), down - perp * 0.4f, r * 0.85f, 2.5f, feat);
-                DrawCircle(pos, r, body);
+                DrawBody(pos, r, body);
                 break;
 
             case Archetype.Venomous: // antena + glándulas
-                DrawCircle(pos, r, body);
+                DrawBody(pos, r, body);
                 Vector2 a0 = pos + up * r, a1 = a0 + up * (r * 0.7f);
                 DrawLine(a0, a1, feat, 2f);
                 DrawCircle(a1, r * 0.2f, VenomColor);
@@ -1101,7 +1112,7 @@ public partial class ArenaView : Control
                 break;
 
             default: // Guardian: robusto con visera
-                DrawCircle(pos, r, body);
+                DrawBody(pos, r, body);
                 DrawLine(pos + perp * (r * 0.75f) + up * (r * 0.12f), pos - perp * (r * 0.75f) + up * (r * 0.12f), feat, 3.5f);
                 break;
         }
@@ -1117,7 +1128,7 @@ public partial class ArenaView : Control
         Vector2 f = facing.LengthSquared() > 0.001f ? facing.Normalized() : Vector2.Left;
         Color feat = Feat(body);
 
-        DrawCircle(pos, r, body);
+        DrawBody(pos, r, body);
         int spikes = boss ? 9 : 6;
         float len = boss ? 7f : 4f;
         for (int k = 0; k < spikes; k++)
