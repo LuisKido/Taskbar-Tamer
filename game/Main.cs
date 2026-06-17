@@ -19,6 +19,9 @@ public partial class Main : Control
     private static readonly Vector2I ManageSize = new(680, 540);
     private static readonly Vector2I RecruitSize = new(380, 420);
     private static readonly Vector2I FormationSize = new(460, 440);
+    private static readonly Vector2I SettingsSize = new(360, 250);
+
+    private float _uiScale = 1f;
 
     private readonly GameSession _session = new();
     private bool _dragging;
@@ -34,6 +37,8 @@ public partial class Main : Control
     private ManagementPanel? _activeManage;
     private RecruitPanel? _activeRecruit;
     private FormationPanel? _activeFormation;
+    private PackedScene _settingsScene = null!;
+    private SettingsPanel? _activeSettings;
 
     public override void _Ready()
     {
@@ -41,14 +46,17 @@ public partial class Main : Control
         _manageScene = GD.Load<PackedScene>("res://Scenes/Manage.tscn");
         _recruitScene = GD.Load<PackedScene>("res://Scenes/Recruit.tscn");
         _formationScene = GD.Load<PackedScene>("res://Scenes/Formation.tscn");
+        _settingsScene = GD.Load<PackedScene>("res://Scenes/Settings.tscn");
         BuildUi();
-
-        // La ventana arranca con el tamaño compacto correcto (no el de project.godot).
-        GetWindow().Size = CompactSize;
 
         long now = (long)Time.GetUnixTimeFromSystem();
         _session.LoadOrCreate(now);
         _session.ApplyOfflineProgress(now);
+
+        // Aplica los ajustes guardados (escala de UI + siempre encima) y fija el tamaño.
+        _uiScale = _session.State.UiScale;
+        GetWindow().AlwaysOnTop = _session.State.AlwaysOnTop;
+        SetWindowSize(CompactSize);
 
         _arena.Begin(_session);
 
@@ -91,6 +99,10 @@ public partial class Main : Control
         var title = new Label { Text = "🐾 Taskbar Tamer" };
         title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         header.AddChild(title);
+
+        var settings = new Button { Text = "⚙", FocusMode = FocusModeEnum.None };
+        settings.Pressed += OnSettingsPressed;
+        header.AddChild(settings);
 
         var close = new Button { Text = "✕", FocusMode = FocusModeEnum.None };
         close.Pressed += () => GetTree().Quit();
@@ -170,7 +182,7 @@ public partial class Main : Control
         AddChild(_activeBattle);
 
         _mainPanel.Visible = false;
-        GetWindow().Size = BattleSize;
+        SetWindowSize(BattleSize);
         _activeBattle.Begin(player, rival, seed: 2024, SetRegistry.Empty, GameConfig.Default);
     }
 
@@ -178,7 +190,7 @@ public partial class Main : Control
     {
         _activeBattle = null;
         _mainPanel.Visible = true;
-        GetWindow().Size = CompactSize;
+        SetWindowSize(CompactSize);
         Refresh();
     }
 
@@ -192,7 +204,7 @@ public partial class Main : Control
         AddChild(_activeManage);
 
         _mainPanel.Visible = false;
-        GetWindow().Size = ManageSize;
+        SetWindowSize(ManageSize);
         _activeManage.Begin(_session);
     }
 
@@ -200,7 +212,7 @@ public partial class Main : Control
     {
         _activeManage = null;
         _mainPanel.Visible = true;
-        GetWindow().Size = CompactSize;
+        SetWindowSize(CompactSize);
         _arena.RebuildUnits();
         Refresh();
     }
@@ -215,7 +227,7 @@ public partial class Main : Control
         AddChild(_activeRecruit);
 
         _mainPanel.Visible = false;
-        GetWindow().Size = RecruitSize;
+        SetWindowSize(RecruitSize);
         _activeRecruit.Begin(_session);
     }
 
@@ -223,7 +235,7 @@ public partial class Main : Control
     {
         _activeRecruit = null;
         _mainPanel.Visible = true;
-        GetWindow().Size = CompactSize;
+        SetWindowSize(CompactSize);
         _arena.RebuildUnits();
         Refresh();
     }
@@ -238,7 +250,7 @@ public partial class Main : Control
         AddChild(_activeFormation);
 
         _mainPanel.Visible = false;
-        GetWindow().Size = FormationSize;
+        SetWindowSize(FormationSize);
         _activeFormation.Begin(_session);
     }
 
@@ -246,9 +258,55 @@ public partial class Main : Control
     {
         _activeFormation = null;
         _mainPanel.Visible = true;
-        GetWindow().Size = CompactSize;
+        SetWindowSize(CompactSize);
         _arena.RebuildUnits();
         Refresh();
+    }
+
+    private void OnSettingsPressed()
+    {
+        if (_activeSettings is not null)
+            return;
+
+        _activeSettings = _settingsScene.Instantiate<SettingsPanel>();
+        _activeSettings.Closed += OnSettingsClosed;
+        AddChild(_activeSettings);
+
+        _mainPanel.Visible = false;
+        SetWindowSize(SettingsSize);
+        _activeSettings.Begin(_uiScale, GetWindow().AlwaysOnTop, OnScaleChanged, OnAlwaysOnTopChanged);
+    }
+
+    private void OnSettingsClosed()
+    {
+        _activeSettings = null;
+        _mainPanel.Visible = true;
+        SetWindowSize(CompactSize);
+        Refresh();
+    }
+
+    private void OnScaleChanged(float scale)
+    {
+        _uiScale = scale;
+        _session.State.UiScale = scale;
+        _session.Save();
+        SetWindowSize(SettingsSize); // re-aplica en vivo mientras el panel está abierto
+    }
+
+    private void OnAlwaysOnTopChanged(bool on)
+    {
+        GetWindow().AlwaysOnTop = on;
+        _session.State.AlwaysOnTop = on;
+        _session.Save();
+    }
+
+    // Aplica la escala de UI: agranda la ventana y escala todo el contenido proporcionalmente.
+    private void SetWindowSize(Vector2I baseSize)
+    {
+        GetWindow().ContentScaleFactor = _uiScale;
+        GetWindow().Size = new Vector2I(
+            (int)(baseSize.X * _uiScale),
+            (int)(baseSize.Y * _uiScale));
     }
 
     private void Refresh()

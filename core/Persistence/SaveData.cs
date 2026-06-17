@@ -33,6 +33,12 @@ public sealed class SaveData
     /// <summary>Fase alcanzada en la arena (progreso de oleadas).</summary>
     public int Stage { get; set; } = 1;
 
+    /// <summary>Escala de la interfaz (1.0 = normal). Ajuste del jugador para adaptarse a su pantalla.</summary>
+    public float UiScale { get; set; } = 1f;
+
+    /// <summary>Ventana siempre encima.</summary>
+    public bool AlwaysOnTop { get; set; } = true;
+
     /// <summary>Partes recolectadas.</summary>
     public List<Part> Inventory { get; set; } = new();
 

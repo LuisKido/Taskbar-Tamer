@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 using TaskbarTamer.Core.Model;
 
 namespace TaskbarTamer.Game;
@@ -57,6 +58,21 @@ public static class Labels
         Core.Model.Archetype.Venomous => "Estallido tóxico (AoE veneno)",
         _ => "Ráfaga (proyectil pesado a distancia)", // Bruiser
     };
+
+    /// <summary>Una línea por cada stat no nula de la parte (para el tooltip).</summary>
+    public static List<string> PartStatLines(Part p)
+    {
+        Stats s = p.BaseStats;
+        var lines = new List<string>();
+        if (s.MaxHp > 0) lines.Add($"+{s.MaxHp} vida");
+        if (s.Attack > 0) lines.Add($"+{s.Attack} ataque");
+        if (s.Defense > 0) lines.Add($"+{s.Defense} defensa");
+        if (s.Speed > 0) lines.Add($"+{s.Speed} velocidad");
+        if (s.CritChance > 0) lines.Add($"+{s.CritChance / 100}% crítico");
+        if (s.Evasion > 0) lines.Add($"+{s.Evasion / 100}% evasión");
+        if (s.StatusPower > 0) lines.Add($"+{s.StatusPower / 100}% poder de estado");
+        return lines;
+    }
 
     /// <summary>Resumen compacto de las stats no nulas de una parte.</summary>
     public static string PartStats(Part p)

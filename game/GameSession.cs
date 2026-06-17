@@ -52,6 +52,8 @@ public sealed class GameSession
 
         if (State.Stage < 1)
             State.Stage = 1;
+        if (State.UiScale < 0.5f || State.UiScale > 3f)
+            State.UiScale = 1f;
 
         EnsureFormation();
     }

@@ -265,14 +265,11 @@ public partial class ManagementPanel : Control
             Part rep = reps[kind];
             int count = counts[kind];
             bool fusable = count >= fusionReq && kind.Rarity != Rarity.BioMerge;
-            string tooltip =
-                $"{Labels.Slot(kind.Slot)} · {kind.Family} [{Labels.Rarity(kind.Rarity)}] ×{count}\n" +
-                $"{Labels.PartStats(rep)}\nClic para equipar una";
 
             Part toEquip = rep;
             var card = new ItemIcon();
             _invGrid.AddChild(card);
-            card.Setup(kind, count, fusable, tooltip, () => { _session.Equip(_selected, toEquip); RefreshAll(); });
+            card.Setup(rep, count, fusable, () => { _session.Equip(_selected, toEquip); RefreshAll(); });
         }
 
         _lastFusions = -1; // el mensaje de fusión se muestra una sola vez
