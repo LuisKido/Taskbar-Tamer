@@ -194,6 +194,8 @@ public partial class ArenaView : Control
     private PlayerUnit? _tauntUnit;
     private float _tauntTimer;
     private ImageTexture? _bodyTex;
+    private readonly Dictionary<Archetype, ImageTexture> _allyTex = new();
+    private readonly Dictionary<(int, bool), ImageTexture> _enemyTex = new();
 
     private MapDef CurrentMap => Maps[((_session.Stage - 1) / MapBand) % Maps.Length];
     private bool IsBossStage => _session.Stage % MapBand == 0;
@@ -202,7 +204,10 @@ public partial class ArenaView : Control
     {
         _session = session;
         CustomMinimumSize = new Vector2(0, 150);
-        _bodyTex ??= SpriteFactory.BakeSphere(64); // sprite de cuerpo horneado una vez
+        TextureFilter = TextureFilterEnum.Nearest; // pixel-art nítido
+        if (_allyTex.Count == 0)
+            foreach (Archetype a in System.Enum.GetValues<Archetype>())
+                _allyTex[a] = PixelSpriteFactory.BakeArchetype(a);
         BuildUnits();
         SpawnWave();
     }
@@ -945,16 +950,13 @@ public partial class ArenaView : Control
                 DrawCircle(u.Pos, u.Radius * 0.7f, new Color(0f, 0f, 0f, 0.3f));
 
             Vector2 dp = new Vector2(u.Pos.X, u.Pos.Y + u.VisualY);
-            Color body = u.HitFlash > 0f ? new Color(1f, 0.7f, 0.7f) : u.Color;
-            DrawAlly(dp, u.Radius, body, u.Facing, u.Archetype);
-            DrawEquipment(dp, u.Radius, u, u.Facing);
+            Color mod = u.HitFlash > 0f ? new Color(1f, 0.55f, 0.55f) : Colors.White;
+            DrawSprite(_allyTex[u.Archetype], dp, u.Radius, mod);
             if (u.InvulnTimer > 0f) // escudo de esquiva
             {
                 float a = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 12f));
                 DrawArc(dp, u.Radius + 5f, 0f, Mathf.Tau, 22, new Color(0.5f, 0.9f, 1f, a), 2f);
             }
-            if (u.Role == Role.Ranged)
-                DrawArc(dp, u.Radius + 2f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.4f), 1.5f);
             if (u.AbilityCooldown <= 0f) // habilidad lista: brillo pulsante
             {
                 Color glow = AbilityColor(u);
@@ -964,14 +966,14 @@ public partial class ArenaView : Control
             DrawBar(new Vector2(dp.X - 11f, dp.Y + u.Radius + 3f), 22f, u.Hp / u.MaxHp, AllyHpColor);
         }
 
-        // Enemigos (miran a la izquierda).
+        // Enemigos.
+        int mapIndex = MapIndex();
         Enemy? boss = null;
         foreach (Enemy e in _enemies)
         {
             if (e.IsBoss) boss = e;
-            Color baseCol = e.IsBoss ? Darken(map.EnemyColor) : map.EnemyColor;
-            Color body = e.HitFlash > 0f ? Colors.White : baseCol;
-            DrawEnemy(e.Pos, e.Radius, body, e.Facing, e.IsBoss);
+            Color mod = e.HitFlash > 0f ? new Color(1f, 0.6f, 0.6f) : Colors.White;
+            DrawSprite(EnemyTex(mapIndex, e.IsBoss), e.Pos, e.Radius, mod);
             if (!e.IsBoss)
                 DrawBar(new Vector2(e.Pos.X - 9f, e.Pos.Y - e.Radius - 6f), 18f, e.Hp / e.MaxHp, EnemyHpColor);
         }
@@ -1049,6 +1051,27 @@ public partial class ArenaView : Control
             DrawCircle(pos, r, col);
         else
             DrawTextureRect(_bodyTex, new Rect2(pos.X - r, pos.Y - r, r * 2f, r * 2f), false, col);
+    }
+
+    // Dibuja un sprite pixel-art centrado en pos, escalado al radio.
+    private void DrawSprite(Texture2D tex, Vector2 pos, float r, Color mod)
+    {
+        float s = r * 2.5f;
+        DrawTextureRect(tex, new Rect2(pos.X - s * 0.5f, pos.Y - s * 0.5f, s, s), false, mod);
+    }
+
+    private int MapIndex() => ((_session.Stage - 1) / MapBand) % Maps.Length;
+
+    private ImageTexture EnemyTex(int mapIndex, bool boss)
+    {
+        var key = (mapIndex, boss);
+        if (!_enemyTex.TryGetValue(key, out ImageTexture? t))
+        {
+            Color col = boss ? Darken(Maps[mapIndex].EnemyColor) : Maps[mapIndex].EnemyColor;
+            t = PixelSpriteFactory.BakeBlob(col, boss);
+            _enemyTex[key] = t;
+        }
+        return t;
     }
 
     private static Color Feat(Color body) => new(body.R * 0.6f, body.G * 0.6f, body.B * 0.6f);
