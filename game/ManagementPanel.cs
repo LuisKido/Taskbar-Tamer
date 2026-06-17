@@ -25,7 +25,7 @@ public partial class ManagementPanel : Control
     private VBoxContainer _slotsBox = null!;
     private Label _statsLabel = null!;
     private Label _invCountLabel = null!;
-    private VBoxContainer _invBox = null!;
+    private GridContainer _invGrid = null!;
     private int _lastFusions = -1;
 
     public void Begin(GameSession session)
@@ -130,10 +130,11 @@ public partial class ManagementPanel : Control
         scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
         right.AddChild(scroll);
 
-        _invBox = new VBoxContainer();
-        _invBox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        _invBox.AddThemeConstantOverride("separation", 2);
-        scroll.AddChild(_invBox);
+        _invGrid = new GridContainer { Columns = 4 };
+        _invGrid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _invGrid.AddThemeConstantOverride("h_separation", 5);
+        _invGrid.AddThemeConstantOverride("v_separation", 5);
+        scroll.AddChild(_invGrid);
     }
 
     private void RefreshAll()
@@ -229,7 +230,7 @@ public partial class ManagementPanel : Control
 
     private void RefreshInventory()
     {
-        ClearChildren(_invBox);
+        ClearChildren(_invGrid);
         var inventory = _session.State.Inventory;
 
         string suffix = _lastFusions switch
@@ -264,22 +265,14 @@ public partial class ManagementPanel : Control
             Part rep = reps[kind];
             int count = counts[kind];
             bool fusable = count >= fusionReq && kind.Rarity != Rarity.BioMerge;
-            string mark = fusable ? "  ⚗" : "";
-
-            var btn = new Button
-            {
-                Text = $"{Labels.Slot(kind.Slot)} {kind.Family} [{Labels.Rarity(kind.Rarity)}] ×{count}{mark}\n{Labels.PartStats(rep)}",
-                FocusMode = FocusModeEnum.None,
-                Alignment = HorizontalAlignment.Left,
-                ClipText = true,
-                TooltipText = "Clic para equipar una",
-            };
-            btn.Modulate = Labels.RarityColor(kind.Rarity);
-            btn.AddThemeFontSizeOverride("font_size", 11);
+            string tooltip =
+                $"{Labels.Slot(kind.Slot)} · {kind.Family} [{Labels.Rarity(kind.Rarity)}] ×{count}\n" +
+                $"{Labels.PartStats(rep)}\nClic para equipar una";
 
             Part toEquip = rep;
-            btn.Pressed += () => { _session.Equip(_selected, toEquip); RefreshAll(); };
-            _invBox.AddChild(btn);
+            var card = new ItemIcon();
+            _invGrid.AddChild(card);
+            card.Setup(kind, count, fusable, tooltip, () => { _session.Equip(_selected, toEquip); RefreshAll(); });
         }
 
         _lastFusions = -1; // el mensaje de fusión se muestra una sola vez
