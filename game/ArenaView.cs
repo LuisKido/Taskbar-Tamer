@@ -196,8 +196,8 @@ public partial class ArenaView : Control
     private ImageTexture? _bodyTex;
     private readonly Dictionary<Archetype, List<ImageTexture>> _allyFrames = new();   // base: mira a la derecha
     private readonly Dictionary<Archetype, List<ImageTexture>> _allyFramesR = new();  // volteado (izquierda)
-    private readonly Dictionary<(int, bool), ImageTexture> _enemyTex = new();
-    private readonly Dictionary<(int, bool), ImageTexture> _enemyTexR = new();
+    private readonly Dictionary<(int, bool), List<ImageTexture>> _enemyFrames = new();
+    private readonly Dictionary<(int, bool), List<ImageTexture>> _enemyFramesR = new();
 
     private MapDef CurrentMap => Maps[((_session.Stage - 1) / MapBand) % Maps.Length];
     private bool IsBossStage => _session.Stage % MapBand == 0;
@@ -994,7 +994,10 @@ public partial class ArenaView : Control
         {
             if (e.IsBoss) boss = e;
             Color mod = e.HitFlash > 0f ? new Color(1f, 0.6f, 0.6f) : Colors.White;
-            DrawSprite(EnemyTex(mapIndex, e.IsBoss, e.Facing.X > 0f), e.Pos, e.Radius, mod);
+            List<ImageTexture> ef = EnemyFrameSet(mapIndex, e.IsBoss, e.Facing.X > 0f);
+            int eIdle = Math.Min(2, ef.Count);
+            int efi = eIdle > 0 ? (int)(_pulseT * 3f) % eIdle : 0;
+            DrawSprite(ef[efi], e.Pos, e.Radius, mod);
             if (!e.IsBoss)
                 DrawBar(new Vector2(e.Pos.X - 9f, e.Pos.Y - e.Radius - 6f), 18f, e.Hp / e.MaxHp, EnemyHpColor);
         }
@@ -1085,21 +1088,30 @@ public partial class ArenaView : Control
 
     private int MapIndex() => ((_session.Stage - 1) / MapBand) % Maps.Length;
 
-    private ImageTexture EnemyTex(int mapIndex, bool boss, bool faceRight)
+    private List<ImageTexture> EnemyFrameSet(int mapIndex, bool boss, bool faceRight)
     {
         var key = (mapIndex, boss);
-        if (!_enemyTex.TryGetValue(key, out ImageTexture? t))
+        if (!_enemyFrames.TryGetValue(key, out List<ImageTexture>? baseList))
         {
-            // PNG del bioma si existe; si no, blob generado por código.
-            Color col = boss ? Darken(Maps[mapIndex].EnemyColor) : Maps[mapIndex].EnemyColor;
-            t = CreatureArt.EnemyTexture(mapIndex, boss, boss ? 100 : 56)
-                ?? PixelSpriteFactory.BakeBlob(col, boss);
-            _enemyTex[key] = t;
-            Image flip = t.GetImage();
-            flip.FlipX();
-            _enemyTexR[key] = ImageTexture.CreateFromImage(flip);
+            // Frames del PNG del bioma si existen; si no, un blob generado por código.
+            baseList = CreatureArt.EnemyFrames(mapIndex, boss, boss ? 100 : 56);
+            if (baseList.Count == 0)
+            {
+                Color col = boss ? Darken(Maps[mapIndex].EnemyColor) : Maps[mapIndex].EnemyColor;
+                baseList = new List<ImageTexture> { PixelSpriteFactory.BakeBlob(col, boss) };
+            }
+            _enemyFrames[key] = baseList;
+
+            var flipped = new List<ImageTexture>(baseList.Count);
+            foreach (ImageTexture t in baseList)
+            {
+                Image f = t.GetImage();
+                f.FlipX();
+                flipped.Add(ImageTexture.CreateFromImage(f));
+            }
+            _enemyFramesR[key] = flipped;
         }
-        return faceRight ? _enemyTex[key] : _enemyTexR[key]; // base mira a la derecha
+        return faceRight ? _enemyFrames[key] : _enemyFramesR[key]; // base mira a la derecha
     }
 
     private static Color Feat(Color body) => new(body.R * 0.6f, body.G * 0.6f, body.B * 0.6f);
