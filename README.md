@@ -110,6 +110,7 @@ scripts/ Ayudas para ejecutar (run.ps1 / run.sh).
 | [04 — Roadmap](docs/04-roadmap.md) | Fases de desarrollo y orden de construcción |
 | [05 — Ideas / evolución](docs/05-ideas-evolucion.md) | Backlog de mecánicas de evolución (tema Digimon) |
 | [06 — Economía / mercado](docs/06-economia-mercado.md) | Drops por semilla, escasez, y Steam Market sano |
+| [07 — Prompt de assets](docs/07-prompt-assets.md) | Prompts para generar el arte pixel-art (animal + tecnología) con IA |
 
 ## Principio rector
 
