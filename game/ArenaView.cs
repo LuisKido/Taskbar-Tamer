@@ -194,8 +194,10 @@ public partial class ArenaView : Control
     private PlayerUnit? _tauntUnit;
     private float _tauntTimer;
     private ImageTexture? _bodyTex;
-    private readonly Dictionary<Archetype, ImageTexture> _allyTex = new();
+    private readonly Dictionary<Archetype, ImageTexture> _allyTex = new();   // mira a la izquierda
+    private readonly Dictionary<Archetype, ImageTexture> _allyTexR = new();  // volteado (derecha)
     private readonly Dictionary<(int, bool), ImageTexture> _enemyTex = new();
+    private readonly Dictionary<(int, bool), ImageTexture> _enemyTexR = new();
 
     private MapDef CurrentMap => Maps[((_session.Stage - 1) / MapBand) % Maps.Length];
     private bool IsBossStage => _session.Stage % MapBand == 0;
@@ -207,7 +209,14 @@ public partial class ArenaView : Control
         TextureFilter = TextureFilterEnum.Nearest; // pixel-art nítido
         if (_allyTex.Count == 0)
             foreach (Archetype a in System.Enum.GetValues<Archetype>())
-                _allyTex[a] = PixelSpriteFactory.BakeArchetype(a);
+            {
+                // Usa el PNG si existe; si no, el sprite generado por código.
+                ImageTexture baseTex = CreatureArt.ArenaTexture(a, 52) ?? PixelSpriteFactory.BakeArchetype(a);
+                _allyTex[a] = baseTex;
+                Image flip = baseTex.GetImage();
+                flip.FlipX();
+                _allyTexR[a] = ImageTexture.CreateFromImage(flip);
+            }
         BuildUnits();
         SpawnWave();
     }
@@ -260,7 +269,7 @@ public partial class ArenaView : Control
             AttackTimer = GD.Randf() * PlayerAttackInterval,
             Color = role == Role.Melee ? MeleeColor : RangedColor,
             ShotColor = AttackColorFor(creature),
-            Radius = role == Role.Melee ? 10f : 9f,
+            Radius = role == Role.Melee ? 13f : 11f,
             MaxHp = maxHp,
             Hp = maxHp,
             Ability = AbilityFor(creature),
@@ -352,7 +361,7 @@ public partial class ArenaView : Control
                 Pos = RandomEdgeSpawn(w, h),
                 Hp = hp,
                 MaxHp = hp,
-                Radius = 8f + GD.Randf() * 3f,
+                Radius = 11f + GD.Randf() * 3f,
                 Damage = dmg,
                 AttackTimer = GD.Randf() * EnemyAttackInterval,
             });
@@ -951,7 +960,8 @@ public partial class ArenaView : Control
 
             Vector2 dp = new Vector2(u.Pos.X, u.Pos.Y + u.VisualY);
             Color mod = u.HitFlash > 0f ? new Color(1f, 0.55f, 0.55f) : Colors.White;
-            DrawSprite(_allyTex[u.Archetype], dp, u.Radius, mod);
+            ImageTexture aTex = u.Facing.X > 0f ? _allyTexR[u.Archetype] : _allyTex[u.Archetype];
+            DrawSprite(aTex, dp, u.Radius, mod);
             if (u.InvulnTimer > 0f) // escudo de esquiva
             {
                 float a = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 12f));
@@ -973,7 +983,7 @@ public partial class ArenaView : Control
         {
             if (e.IsBoss) boss = e;
             Color mod = e.HitFlash > 0f ? new Color(1f, 0.6f, 0.6f) : Colors.White;
-            DrawSprite(EnemyTex(mapIndex, e.IsBoss), e.Pos, e.Radius, mod);
+            DrawSprite(EnemyTex(mapIndex, e.IsBoss, e.Facing.X > 0f), e.Pos, e.Radius, mod);
             if (!e.IsBoss)
                 DrawBar(new Vector2(e.Pos.X - 9f, e.Pos.Y - e.Radius - 6f), 18f, e.Hp / e.MaxHp, EnemyHpColor);
         }
@@ -1053,16 +1063,18 @@ public partial class ArenaView : Control
             DrawTextureRect(_bodyTex, new Rect2(pos.X - r, pos.Y - r, r * 2f, r * 2f), false, col);
     }
 
-    // Dibuja un sprite pixel-art centrado en pos, escalado al radio.
+    // Dibuja un sprite centrado en pos, escalado al radio y respetando su proporción.
     private void DrawSprite(Texture2D tex, Vector2 pos, float r, Color mod)
     {
-        float s = r * 2.5f;
-        DrawTextureRect(tex, new Rect2(pos.X - s * 0.5f, pos.Y - s * 0.5f, s, s), false, mod);
+        Vector2 ts = tex.GetSize();
+        float w = r * 3.2f;
+        float h = w * (ts.Y / Mathf.Max(1f, ts.X));
+        DrawTextureRect(tex, new Rect2(pos.X - w * 0.5f, pos.Y - h * 0.5f, w, h), false, mod);
     }
 
     private int MapIndex() => ((_session.Stage - 1) / MapBand) % Maps.Length;
 
-    private ImageTexture EnemyTex(int mapIndex, bool boss)
+    private ImageTexture EnemyTex(int mapIndex, bool boss, bool faceRight)
     {
         var key = (mapIndex, boss);
         if (!_enemyTex.TryGetValue(key, out ImageTexture? t))
@@ -1070,8 +1082,11 @@ public partial class ArenaView : Control
             Color col = boss ? Darken(Maps[mapIndex].EnemyColor) : Maps[mapIndex].EnemyColor;
             t = PixelSpriteFactory.BakeBlob(col, boss);
             _enemyTex[key] = t;
+            Image flip = t.GetImage();
+            flip.FlipX();
+            _enemyTexR[key] = ImageTexture.CreateFromImage(flip);
         }
-        return t;
+        return faceRight ? _enemyTexR[key] : _enemyTex[key];
     }
 
     private static Color Feat(Color body) => new(body.R * 0.6f, body.G * 0.6f, body.B * 0.6f);
