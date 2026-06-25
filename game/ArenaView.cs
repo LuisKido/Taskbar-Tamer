@@ -198,6 +198,7 @@ public partial class ArenaView : Control
     private readonly Dictionary<Archetype, List<ImageTexture>> _allyFramesR = new();  // volteado (izquierda)
     private readonly Dictionary<(int, bool), List<ImageTexture>> _enemyFrames = new();
     private readonly Dictionary<(int, bool), List<ImageTexture>> _enemyFramesR = new();
+    private readonly Dictionary<int, ImageTexture?> _mapBg = new();
 
     private MapDef CurrentMap => Maps[((_session.Stage - 1) / MapBand) % Maps.Length];
     private bool IsBossStage => _session.Stage % MapBand == 0;
@@ -946,7 +947,11 @@ public partial class ArenaView : Control
         DrawSetTransform(shakeOffset, 0f, Vector2.One);
 
         MapDef map = CurrentMap;
-        DrawRect(new Rect2(Vector2.Zero, Size), map.Background);
+        ImageTexture? bg = MapBg(MapIndex());
+        if (bg is not null)
+            DrawTextureRect(bg, new Rect2(Vector2.Zero, Size), false);
+        else
+            DrawRect(new Rect2(Vector2.Zero, Size), map.Background);
 
         // Partículas (debajo de las criaturas).
         foreach (Particle p in _particles)
@@ -1087,6 +1092,16 @@ public partial class ArenaView : Control
     }
 
     private int MapIndex() => ((_session.Stage - 1) / MapBand) % Maps.Length;
+
+    private ImageTexture? MapBg(int mapIndex)
+    {
+        if (!_mapBg.TryGetValue(mapIndex, out ImageTexture? t))
+        {
+            t = CreatureArt.MapBackground(mapIndex, 512);
+            _mapBg[mapIndex] = t; // cachea aunque sea null (no recargar cada frame)
+        }
+        return t;
+    }
 
     private List<ImageTexture> EnemyFrameSet(int mapIndex, bool boss, bool faceRight)
     {

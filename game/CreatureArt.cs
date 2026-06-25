@@ -25,6 +25,24 @@ public static class CreatureArt
 
     private static readonly string[] MinionNames = { "minion_bosque", "minion_magma", "minion_tundra" };
     private static readonly string[] BossNames = { "boss_abisal", "boss_magma", "boss_glacial" };
+    private static readonly string[] MapNames = { "bosque", "magma", "tundra" };
+
+    /// <summary>Fondo de arena del bioma (reescalado a un cuadrado de 'size'), o null si no hay asset.</summary>
+    public static ImageTexture? MapBackground(int mapIndex, int size)
+    {
+        if (mapIndex < 0 || mapIndex >= MapNames.Length)
+            return null;
+        string p = $"res://assets/maps/{MapNames[mapIndex]}.png";
+        if (!ResourceLoader.Exists(p))
+            return null;
+
+        var tex = GD.Load<Texture2D>(p);
+        Image img = tex.GetImage();
+        if (img.GetFormat() != Image.Format.Rgba8)
+            img.Convert(Image.Format.Rgba8);
+        img.Resize(size, size, Image.Interpolation.Lanczos);
+        return ImageTexture.CreateFromImage(img);
+    }
 
     /// <summary>Frames del enemigo/jefe del mapa indicado, o lista vacía si no hay asset.</summary>
     public static List<ImageTexture> EnemyFrames(int mapIndex, bool boss, int width)
