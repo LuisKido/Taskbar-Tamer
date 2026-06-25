@@ -31,36 +31,41 @@
 
 ## Estilo base (preámbulo — pégalo antes de cada sujeto)
 
-> **Línea de diseño: GUERREROS BIOMECÁNICOS HUMANOIDES** (cyborg/mecha-guerrero, mezcla de
-> humanoide + tecnología + un toque animal). Estilo de las formas humanoides de Digimon.
+> **Línea de diseño: BESTIAS-GUERRERAS ANTROPOMORFAS (furros) BIOMECÁNICAS.** Animales
+> humanoides bípedos (estilo furro/kemono) con armadura y tecnología, vibe Digimon
+> humanoide. **Fondo de color sólido (chroma key)** — Gemini no hace transparencia, así
+> que usamos un fondo plano que luego quitamos por código.
 
 ```
-Pixel art 2D, sprite de videojuego retro 16-bit, estilo guerrero coleccionable (tipo
-Digimon humanoide). Personaje HUMANOIDE BIOMECÁNICO: cuerpo bípedo con armadura y partes
-cibernéticas (placas metálicas, circuitos, tubos, LEDs/luces de neón, articulaciones de
-pistón) y rasgos de bestia. Cuerpo completo de pie, VISTA LATERAL PURA mirando a la
-DERECHA. Silueta clara y legible. Sombreado por celdas con 3-4 tonos por color y CONTORNO
-oscuro de 1px. Paleta limitada y cohesiva, sin antialias.
+Pixel art 2D, sprite de videojuego retro 16-bit, estilo guerrero coleccionable tipo
+Digimon. Personaje ANTROPOMORFO (furro): ANIMAL HUMANOIDE BÍPEDO, de pie en dos piernas,
+con pelaje/escamas y armadura + partes biomecánicas (placas metálicas, circuitos, tubos,
+LEDs de neón, articulaciones de pistón). Cuerpo completo, VISTA LATERAL PURA mirando a la
+DERECHA, postura heroica. Silueta clara y legible. Sombreado por celdas con 3-4 tonos por
+color y CONTORNO oscuro de 1px. Paleta limitada, sin antialias.
 
-FONDO 100% TRANSPARENTE (canal alfa real). NO pintes un patrón de cuadros ni un fondo
-gris: deja los píxeles del fondo totalmente vacíos/transparentes. Sin texto, sin marca de
-agua, sin escena, sin sombra en el suelo. Sujeto centrado con margen transparente.
+FONDO DE COLOR PLANO Y UNIFORME tipo chroma key: VERDE BRILLANTE puro (#00FF00),
+exactamente igual en toda la imagen, SIN degradados ni sombras ni patrones. El personaje
+NO debe usar ese verde de fondo. Sin texto, sin marca de agua. Personaje centrado.
 ```
 
-**Salida:** PNG con **transparencia real**. Para frames añade al final →
-`Hoja horizontal de 4 cuadros del mismo tamaño en una rejilla, sin separación ni fondo entre cuadros: idle, idle, ataque, daño.`
+> Para la criatura **verde (Toxia)** usa fondo **MAGENTA (#FF00FF)** en vez de verde, para
+> que no se borre su cuerpo. El slicer detecta el color de fondo automáticamente.
+
+**Salida:** PNG con fondo verde/magenta plano. Para frames añade al final →
+`Hoja horizontal de 4 cuadros del mismo tamaño en una rejilla, mismo fondo verde plano entre cuadros: idle, idle, ataque, daño.`
 
 ## Criaturas del jugador (5 especies)
 
 Pega `[estilo base]` + uno de estos:
 
-| Especie | Sujeto (HUMANOIDE biomecánico + color + rol/habilidad) |
+| Especie | Sujeto (BESTIA ANTROPOMORFA bípeda + color + rol/habilidad) |
 |---|---|
-| **Mordak (Guardian)** | Guerrero **humanoide** acorazado tipo juggernaut/caballero, color **azul**. Armadura pesada de placas, **gran escudo de energía** en un brazo, casco con visor, complexión robusta. Toque de tortuga (caparazón en la espalda). Rol: TANQUE (habilidad Provocar). |
-| **Rendkar (Bruiser)** | **Humanoide** artillero pesado, color **naranja**. Brazo-cañón biomecánico, hombreras macizas, postura de disparo. Rol: PEGADOR A DISTANCIA (habilidad Ráfaga: proyectil pesado). |
-| **Voltfang (Charger)** | **Humanoide** ágil tipo ninja/velocista, color **cian**. Delgado, líneas de energía eléctrica, piernas con amortiguadores, estela de rayo. Rol: VELOZ/EVASIVO (habilidad Esquiva: dash). |
-| **Skarn (Leaper)** | **Humanoide** acróbata, color **morado**. Piernas con **pistones/resortes** hidráulicos sobredimensionados, cuerpo compacto y flexible. Rol: SALTADOR (habilidad Salto). |
-| **Toxia (Venomous)** | **Humanoide** alquimista/asesino tóxico, color **verde**. Tanques y tubos de **veneno luminoso** en la espalda, guanteletes con jeringas/aguijones, capucha. Rol: VENENO EN ÁREA (habilidad Estallido tóxico). |
+| **Mordak (Guardian)** | **Tortuga antropomorfa** guerrera bípeda, color **azul**. Armadura pesada de placas, caparazón en la espalda, **gran escudo de energía** en un brazo, casco con visor. Robusto. Rol: TANQUE (Provocar). Fondo verde. |
+| **Rendkar (Bruiser)** | **Rinoceronte/toro antropomorfo** bípedo y musculoso, color **naranja**. **Brazo-cañón** biomecánico, hombreras macizas, cuerno. Rol: PEGADOR A DISTANCIA (Ráfaga). Fondo verde. |
+| **Voltfang (Charger)** | **Lobo antropomorfo** ninja bípedo, color **cian**, esbelto. Pelaje, líneas de energía eléctrica, hojas/garras, estela de rayo. Rol: VELOZ/EVASIVO (Esquiva). Fondo verde. |
+| **Skarn (Leaper)** | **Rana/conejo antropomorfo** acróbata bípedo, color **morado**. Piernas con **pistones/resortes** hidráulicos, ágil. Rol: SALTADOR (Salto). Fondo verde. |
+| **Toxia (Venomous)** | **Escorpión/lagarto antropomorfo** bípedo, color **verde**. Tanques de **veneno luminoso** en la espalda, guanteletes con jeringas/aguijón, capucha. Rol: VENENO (Estallido tóxico). **Fondo MAGENTA** (no verde). |
 
 > Opcional (animación): pide **una fila de 2-4 frames** del mismo tamaño (idle con leve rebote, ataque) como sprite sheet horizontal, fondo transparente, celdas uniformes.
 
