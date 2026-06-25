@@ -1099,7 +1099,7 @@ public partial class ArenaView : Control
             flip.FlipX();
             _enemyTexR[key] = ImageTexture.CreateFromImage(flip);
         }
-        return faceRight ? _enemyTexR[key] : _enemyTex[key];
+        return faceRight ? _enemyTex[key] : _enemyTexR[key]; // base mira a la derecha
     }
 
     private static Color Feat(Color body) => new(body.R * 0.6f, body.G * 0.6f, body.B * 0.6f);
