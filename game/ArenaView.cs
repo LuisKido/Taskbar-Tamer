@@ -194,8 +194,8 @@ public partial class ArenaView : Control
     private PlayerUnit? _tauntUnit;
     private float _tauntTimer;
     private ImageTexture? _bodyTex;
-    private readonly Dictionary<Archetype, ImageTexture> _allyTex = new();   // mira a la izquierda
-    private readonly Dictionary<Archetype, ImageTexture> _allyTexR = new();  // volteado (derecha)
+    private readonly Dictionary<Archetype, List<ImageTexture>> _allyFrames = new();   // base: mira a la derecha
+    private readonly Dictionary<Archetype, List<ImageTexture>> _allyFramesR = new();  // volteado (izquierda)
     private readonly Dictionary<(int, bool), ImageTexture> _enemyTex = new();
     private readonly Dictionary<(int, bool), ImageTexture> _enemyTexR = new();
 
@@ -207,15 +207,23 @@ public partial class ArenaView : Control
         _session = session;
         CustomMinimumSize = new Vector2(0, 150);
         TextureFilter = TextureFilterEnum.Nearest; // pixel-art nítido
-        if (_allyTex.Count == 0)
+        if (_allyFrames.Count == 0)
             foreach (Archetype a in System.Enum.GetValues<Archetype>())
             {
-                // Usa el PNG si existe; si no, el sprite generado por código.
-                ImageTexture baseTex = CreatureArt.ArenaTexture(a, 52) ?? PixelSpriteFactory.BakeArchetype(a);
-                _allyTex[a] = baseTex;
-                Image flip = baseTex.GetImage();
-                flip.FlipX();
-                _allyTexR[a] = ImageTexture.CreateFromImage(flip);
+                // Frames del PNG si existen; si no, un único sprite generado por código.
+                List<ImageTexture> frames = CreatureArt.Frames(a, 52);
+                if (frames.Count == 0)
+                    frames = new List<ImageTexture> { PixelSpriteFactory.BakeArchetype(a) };
+
+                _allyFrames[a] = frames;
+                var flipped = new List<ImageTexture>(frames.Count);
+                foreach (ImageTexture t in frames)
+                {
+                    Image f = t.GetImage();
+                    f.FlipX();
+                    flipped.Add(ImageTexture.CreateFromImage(f));
+                }
+                _allyFramesR[a] = flipped;
             }
         BuildUnits();
         SpawnWave();
@@ -960,8 +968,11 @@ public partial class ArenaView : Control
 
             Vector2 dp = new Vector2(u.Pos.X, u.Pos.Y + u.VisualY);
             Color mod = u.HitFlash > 0f ? new Color(1f, 0.55f, 0.55f) : Colors.White;
-            ImageTexture aTex = u.Facing.X > 0f ? _allyTexR[u.Archetype] : _allyTex[u.Archetype];
-            DrawSprite(aTex, dp, u.Radius, mod);
+            // Base mira a la derecha: usa base si el objetivo está a la derecha, volteado si no.
+            List<ImageTexture> frames = u.Facing.X > 0f ? _allyFrames[u.Archetype] : _allyFramesR[u.Archetype];
+            int idleCount = Math.Min(2, frames.Count); // ciclo idle = frames 0 y 1
+            int fi = idleCount > 0 ? (int)(_pulseT * 3f) % idleCount : 0;
+            DrawSprite(frames[fi], dp, u.Radius, mod);
             if (u.InvulnTimer > 0f) // escudo de esquiva
             {
                 float a = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 12f));

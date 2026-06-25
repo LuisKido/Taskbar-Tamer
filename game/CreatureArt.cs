@@ -5,16 +5,15 @@ using TaskbarTamer.Core.Model;
 namespace TaskbarTamer.Game;
 
 /// <summary>
-/// Carga sprites de criatura desde <c>res://assets/creatures/</c> (PNG en hoja 4×2 de 8
-/// cuadros, mirando a la izquierda). Recorta un cuadro y lo reescala (suave) al tamaño
-/// pedido. Si el PNG no existe/aún no está importado, devuelve null → la arena usa el
-/// sprite generado por código como respaldo.
+/// Carga los frames de una criatura desde <c>res://assets/creatures/&lt;nombre&gt;/N.png</c>
+/// (cortes limpios producidos por scripts/slice_sprite.py). Los reescala al tamaño pedido.
+/// Si no hay frames, devuelve lista vacía → la arena usa el sprite generado por código.
+///
+/// Convención: el frame base MIRA A LA DERECHA; el motor lo voltea para mirar a la izquierda.
+/// Frames 0 y 1 = ciclo de idle.
 /// </summary>
 public static class CreatureArt
 {
-    private const int Cols = 4;
-    private const int Rows = 2;
-
     private static readonly Dictionary<Archetype, string> Files = new()
     {
         [Archetype.Guardian] = "mordak",
@@ -24,36 +23,27 @@ public static class CreatureArt
         [Archetype.Venomous] = "toxia",
     };
 
-    private static string? Path(Archetype a)
-        => Files.TryGetValue(a, out string? n) ? $"res://assets/creatures/{n}.png" : null;
-
-    public static bool HasAsset(Archetype a)
+    public static List<ImageTexture> Frames(Archetype a, int width)
     {
-        string? p = Path(a);
-        return p is not null && ResourceLoader.Exists(p);
+        var list = new List<ImageTexture>();
+        if (!Files.TryGetValue(a, out string? name))
+            return list;
+
+        for (int i = 0; ; i++)
+        {
+            string p = $"res://assets/creatures/{name}/{i}.png";
+            if (!ResourceLoader.Exists(p))
+                break;
+
+            var tex = GD.Load<Texture2D>(p);
+            Image img = tex.GetImage();
+            if (img.GetFormat() != Image.Format.Rgba8)
+                img.Convert(Image.Format.Rgba8);
+
+            int h = Mathf.Max(1, Mathf.RoundToInt(width * (float)img.GetHeight() / img.GetWidth()));
+            img.Resize(width, h, Image.Interpolation.Lanczos);
+            list.Add(ImageTexture.CreateFromImage(img));
+        }
+        return list;
     }
-
-    /// <summary>Cuadro (col, fila) reescalado a <paramref name="width"/> px (alto proporcional). Null si no hay asset.</summary>
-    public static ImageTexture? Frame(Archetype a, int col, int row, int width)
-    {
-        string? p = Path(a);
-        if (p is null || !ResourceLoader.Exists(p))
-            return null;
-
-        var tex = GD.Load<Texture2D>(p);
-        Image full = tex.GetImage();
-        if (full.GetFormat() != Image.Format.Rgba8)
-            full.Convert(Image.Format.Rgba8);
-
-        int cw = full.GetWidth() / Cols;
-        int ch = full.GetHeight() / Rows;
-        Image frame = full.GetRegion(new Rect2I(col * cw, row * ch, cw, ch));
-
-        int h = Mathf.Max(1, Mathf.RoundToInt(width * (float)ch / cw));
-        frame.Resize(width, h, Image.Interpolation.Lanczos);
-        return ImageTexture.CreateFromImage(frame);
-    }
-
-    /// <summary>Cuadro "idle" (esquina superior izquierda) para la arena.</summary>
-    public static ImageTexture? ArenaTexture(Archetype a, int width) => Frame(a, 0, 0, width);
 }

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://burv6g4dwkxv5"
-path="res://.godot/imported/mordak.png-e6685d9345a102f31297ec42121767c1.ctex"
+uid="uid://bw51p0ld1dagx"
+path="res://.godot/imported/1.png-795f6a45a40ba0c4a953f8864211155c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/creatures/mordak.png"
-dest_files=["res://.godot/imported/mordak.png-e6685d9345a102f31297ec42121767c1.ctex"]
+source_file="res://assets/creatures/mordak/1.png"
+dest_files=["res://.godot/imported/1.png-795f6a45a40ba0c4a953f8864211155c.ctex"]
 
 [params]
 
