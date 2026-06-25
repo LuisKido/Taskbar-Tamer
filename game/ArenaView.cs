@@ -1090,8 +1090,10 @@ public partial class ArenaView : Control
         var key = (mapIndex, boss);
         if (!_enemyTex.TryGetValue(key, out ImageTexture? t))
         {
+            // PNG del bioma si existe; si no, blob generado por código.
             Color col = boss ? Darken(Maps[mapIndex].EnemyColor) : Maps[mapIndex].EnemyColor;
-            t = PixelSpriteFactory.BakeBlob(col, boss);
+            t = CreatureArt.EnemyTexture(mapIndex, boss, boss ? 100 : 56)
+                ?? PixelSpriteFactory.BakeBlob(col, boss);
             _enemyTex[key] = t;
             Image flip = t.GetImage();
             flip.FlipX();
