@@ -119,6 +119,27 @@ Criaturas-secuaz biomecánicas, más simples y "monstruosas" (blob con pinchos),
 | **Cavernas de Magma** | Criatura roca/lava biomecánica **naranja-roja** | **Coloso de Magma** (cuerpo de roca con grietas de lava y metal) |
 | **Tundra Espectral** | Espectro/criatura de hielo biomecánica **azul claro** | **Heraldo Glacial** (cristales de hielo y placas heladas) |
 
+## Prompts en INGLÉS — enemigos y jefes (bestias monstruosas, NO antropomorfas)
+
+> Bestias feroces biomecánicas (a 4 patas / mole), para contrastar con los héroes
+> humanoides. Fondo croma **VERDE** salvo las criaturas verdes → **MAGENTA**.
+
+**Style preamble (enemies):**
+```
+Pixel art 2D, 16-bit retro game sprite, monster style (Digimon-like). A FERAL BIOMECHANICAL MONSTER, a wild beast (NOT humanoid, NOT bipedal warrior): four-legged or hulking creature mixing organic flesh with machine parts (metal plates, exposed cables, glowing eyes, tech growths, neon). Full body, PURE SIDE VIEW facing RIGHT, menacing. Clear readable silhouette. Cel-shaded, 3-4 tones per color, dark 1px outline, limited palette, no anti-aliasing. FLAT SOLID UNIFORM CHROMA-KEY BACKGROUND: pure bright GREEN #00FF00 (or MAGENTA #FF00FF if the creature itself is green), identical across the whole image, no gradient/shadow/pattern; the creature must NOT use the background color. No text, no watermark, no scene. Centered.
+Horizontal sheet of 4 equal-size frames in a single row, same flat background between frames, same size and position: idle, idle, attack, hurt.
+```
+
+**Minions (one per biome) — add to the preamble:**
+- **Bosque Abisal** (GREEN → use **MAGENTA** bg): `Subject: a small feral biomech plant-insect beast, GREEN, with vine-like cables, mandibles and a glowing core, snarling, low to the ground.`
+- **Cavernas de Magma** (green bg): `Subject: a small feral biomech magma hound, ORANGE-RED, cracked rock body with lava glow and metal plating, aggressive.`
+- **Tundra Espectral** (green bg): `Subject: a small feral biomech ice beast, pale ICY BLUE, ice crystals and frosted metal, ghostly glow, fanged.`
+
+**Bosses (huge and imposing) — add to the preamble (bigger canvas):**
+- **Devorador Abisal** (GREEN → **MAGENTA** bg): `Subject: HUGE BOSS "Abyssal Devourer", a massive feral biomech beast with a giant fanged maw, root-like cables and a glowing core, GREEN, terrifying and imposing.`
+- **Coloso de Magma** (green bg): `Subject: HUGE BOSS "Magma Colossus", a giant biomech golem-beast of molten rock and metal plates, ORANGE-RED lava cracks, towering and heavy.`
+- **Heraldo Glacial** (green bg): `Subject: HUGE BOSS "Glacial Herald", a giant biomech ice entity with crystal shards and frozen armor plates, ICY BLUE, regal and cold.`
+
 ## Iconos de partes (9 ranuras de anatomía)
 
 Cada parte como un **objeto biomecánico aislado**, icono cuadrado, fondo transparente, ~32×32:
