@@ -10,7 +10,7 @@ public enum Archetype
     /// <summary>Bruiser ofensivo — habilidad: Tajo (golpe en área). Valor por defecto (saves antiguos).</summary>
     Bruiser = 0,
 
-    /// <summary>Tanque — habilidad: Provocar (atrae enemigos).</summary>
+    /// <summary>Tanque — habilidad: Barrera (escudo que absorbe daño).</summary>
     Guardian = 1,
 
     /// <summary>Cargador veloz — habilidad: Embestida (dash + AoE).</summary>

@@ -27,7 +27,7 @@ public partial class ArenaView : Control
     private const int MapBand = 10;
     private const float WaveHealFraction = 0.35f;
     private const float AbilityInterval = 6f;
-    private const float TauntDuration = 2.5f;
+    private const float ShieldFraction = 0.6f; // escudo de la Barrera = 60% de la vida máx
     private const float DashDuration = 0.22f;
     private const float JumpDuration = 0.5f;
     private const float JumpHeight = 28f;
@@ -41,6 +41,7 @@ public partial class ArenaView : Control
     private static readonly Color AllyHpColor = new(0.45f, 0.9f, 0.6f);
     private static readonly Color DefaultShotColor = new(1f, 0.9f, 0.45f);
     private static readonly Color VenomColor = new(0.5f, 0.95f, 0.35f);
+    private static readonly Color ShieldColor = new(0.45f, 0.8f, 1f);
     private static readonly Color FangColor = new(1f, 0.5f, 0.35f);
     private static readonly Color ClawColor = new(1f, 0.85f, 0.35f);
 
@@ -61,7 +62,7 @@ public partial class ArenaView : Control
 
     private enum Role { Melee, Ranged }
 
-    private enum Ability { Blast, Taunt, DashDodge, Jump, VenomNova }
+    private enum Ability { Blast, Shield, DashDodge, Jump, VenomNova }
 
     private sealed class PlayerUnit
     {
@@ -80,6 +81,8 @@ public partial class ArenaView : Control
         public float Radius;
         public float MaxHp;
         public float Hp;
+        public float Shield;     // Barrera (Guardian): absorbe daño antes que la vida
+        public float ShieldMax;
         public float HitFlash;
         public Ability Ability;
         public float AbilityCooldown;
@@ -191,8 +194,6 @@ public partial class ArenaView : Control
     private float _bannerTimer;
     private float _shake;
     private float _pulseT;
-    private PlayerUnit? _tauntUnit;
-    private float _tauntTimer;
     private ImageTexture? _bodyTex;
     private readonly Dictionary<Archetype, List<ImageTexture>> _allyFrames = new();   // base: mira a la derecha
     private readonly Dictionary<Archetype, List<ImageTexture>> _allyFramesR = new();  // volteado (izquierda)
@@ -294,7 +295,7 @@ public partial class ArenaView : Control
     // La habilidad es intrínseca del arquetipo de la criatura (1 criatura por habilidad).
     private static Ability AbilityFor(Creature c) => c.Archetype switch
     {
-        Archetype.Guardian => Ability.Taunt,
+        Archetype.Guardian => Ability.Shield,
         Archetype.Charger => Ability.DashDodge,
         Archetype.Leaper => Ability.Jump,
         Archetype.Venomous => Ability.VenomNova,
@@ -398,8 +399,6 @@ public partial class ArenaView : Control
         if (_bannerTimer > 0f) _bannerTimer -= dt;
         if (_shake > 0f) _shake = Math.Max(0f, _shake - dt * 18f);
         _pulseT += dt;
-        if (_tauntTimer > 0f) _tauntTimer -= dt;
-        if (_tauntUnit is { Downed: true }) _tauntUnit = null;
 
         if (_units.Count > 0 && _units.All(u => u.Downed))
             Retreat();
@@ -574,14 +573,13 @@ public partial class ArenaView : Control
     {
         switch (u.Ability)
         {
-            case Ability.Taunt:
-                _tauntUnit = u;
-                _tauntTimer = TauntDuration;
-                foreach (Enemy e in _enemies)
-                    if (e.Pos.DistanceTo(u.Pos) < 78f)
-                        e.Pos = e.Pos.MoveToward(u.Pos, 46f);
-                SpawnRing(u.Pos, new Color(0.5f, 0.7f, 1f), 78f, 0.4f);
-                SpawnFloater(u.Pos, "¡Provocar!", new Color(0.6f, 0.8f, 1f), 12);
+            case Ability.Shield:
+                // Barrera: gana un escudo que absorbe daño antes que la vida (se refresca al recastear).
+                u.ShieldMax = u.MaxHp * ShieldFraction;
+                u.Shield = u.ShieldMax;
+                SpawnRing(u.Pos, ShieldColor, u.Radius + 10f, 0.4f);
+                SpawnParticles(u.Pos, 12, ShieldColor, 70f);
+                SpawnFloater(u.Pos, "¡Barrera!", ShieldColor, 12);
                 break;
 
             case Ability.DashDodge:
@@ -685,10 +683,7 @@ public partial class ArenaView : Control
             if (e.HitFlash > 0f) e.HitFlash -= dt;
             if (e.StunTimer > 0f) { e.StunTimer -= dt; continue; } // aturdido: detenido
 
-            // Si hay provocación activa, los enemigos van a por el provocador.
-            PlayerUnit? target = (_tauntTimer > 0f && _tauntUnit is { Downed: false })
-                ? _tauntUnit
-                : NearestAlivePlayer(e.Pos);
+            PlayerUnit? target = NearestAlivePlayer(e.Pos);
             if (target is null)
                 continue;
             e.Facing = Dir(e.Pos, target.Pos);
@@ -750,6 +745,24 @@ public partial class ArenaView : Control
         {
             SpawnFloater(target.Pos, "esquiva", new Color(0.6f, 0.9f, 1f), 10);
             return;
+        }
+
+        if (target.Shield > 0f) // Barrera: absorbe primero, el sobrante pasa a la vida
+        {
+            float absorbed = MathF.Min(target.Shield, dmg);
+            target.Shield -= absorbed;
+            dmg -= absorbed;
+            target.HitFlash = 0.12f;
+            SpawnDamageNumber(target.Pos, (int)MathF.Round(absorbed), false, ShieldColor);
+            SpawnRing(target.Pos, ShieldColor, target.Radius + 4f, 0.18f);
+            if (target.Shield <= 0f)
+            {
+                target.Shield = 0f;
+                SpawnFloater(target.Pos, "¡escudo roto!", ShieldColor, 11);
+                SpawnParticles(target.Pos, 10, ShieldColor, 90f);
+            }
+            if (dmg <= 0f)
+                return; // golpe absorbido por completo
         }
 
         target.Hp -= dmg;
@@ -989,7 +1002,14 @@ public partial class ArenaView : Control
                 glow.A = 0.4f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 6f));
                 DrawArc(dp, u.Radius + 4f, 0f, Mathf.Tau, 22, glow, 2f);
             }
+            if (u.Shield > 0f) // Barrera activa: aro de escudo pulsante
+            {
+                float sa = 0.45f + 0.3f * (0.5f + 0.5f * MathF.Sin(_pulseT * 9f));
+                DrawArc(dp, u.Radius + 6f, 0f, Mathf.Tau, 24, new Color(ShieldColor.R, ShieldColor.G, ShieldColor.B, sa), 2.5f);
+            }
             DrawBar(new Vector2(dp.X - 11f, dp.Y + u.Radius + 3f), 22f, u.Hp / u.MaxHp, AllyHpColor);
+            if (u.Shield > 0f && u.ShieldMax > 0f) // barra de escudo justo encima de la vida
+                DrawBar(new Vector2(dp.X - 11f, dp.Y + u.Radius - 1f), 22f, u.Shield / u.ShieldMax, ShieldColor);
         }
 
         // Enemigos.
@@ -1271,7 +1291,7 @@ public partial class ArenaView : Control
 
     private static Color AbilityColor(PlayerUnit u) => u.Ability switch
     {
-        Ability.Taunt => new Color(0.5f, 0.7f, 1f),
+        Ability.Shield => ShieldColor,
         Ability.VenomNova => VenomColor,
         _ => u.ShotColor, // Dash, Jump, Cleave
     };

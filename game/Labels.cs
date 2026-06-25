@@ -52,7 +52,7 @@ public static class Labels
 
     public static string AbilityName(Archetype a) => a switch
     {
-        Core.Model.Archetype.Guardian => "Provocar (atrae enemigos)",
+        Core.Model.Archetype.Guardian => "Barrera (escudo que absorbe daño)",
         Core.Model.Archetype.Charger => "Esquiva (dash + invulnerable)",
         Core.Model.Archetype.Leaper => "Salto (brinco + golpe)",
         Core.Model.Archetype.Venomous => "Estallido tóxico (AoE veneno)",
