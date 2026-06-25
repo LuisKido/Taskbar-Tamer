@@ -25,6 +25,8 @@ public partial class Main : Control
 
     private readonly GameSession _session = new();
     private bool _dragging;
+    private Vector2I _dragMouseStart;   // posición del ratón en pantalla al empezar a arrastrar
+    private Vector2I _dragWindowStart;  // posición de la ventana al empezar a arrastrar
     private Label _statusLabel = null!;
     private Label _offlineLabel = null!;
     private ArenaView _arena = null!;
@@ -333,16 +335,23 @@ public partial class Main : Control
         _session.Save();
     }
 
-    // Arrastre de la ventana sin bordes: mover con el botón izquierdo pulsado.
+    // Arrastre de la ventana sin bordes. Usa la posición ABSOLUTA del ratón en pantalla
+    // (no el delta relativo): así es 1:1 y no se ve afectado por la escala de UI
+    // (ContentScaleFactor reportaría el delta relativo en coordenadas de contenido).
     public override void _Input(InputEvent @event)
     {
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left)
         {
             _dragging = mb.Pressed;
+            if (mb.Pressed)
+            {
+                _dragMouseStart = DisplayServer.MouseGetPosition();
+                _dragWindowStart = GetWindow().Position;
+            }
         }
-        else if (@event is InputEventMouseMotion mm && _dragging)
+        else if (@event is InputEventMouseMotion && _dragging)
         {
-            GetWindow().Position += new Vector2I((int)mm.Relative.X, (int)mm.Relative.Y);
+            GetWindow().Position = _dragWindowStart + (DisplayServer.MouseGetPosition() - _dragMouseStart);
         }
     }
 }
