@@ -148,6 +148,25 @@ Cada parte como un **objeto biomecánico aislado**, icono cuadrado, fondo transp
 - **Defensivas:** Caparazón de placas · Pelaje con fibras tech · Escamas metálicas.
 - **Utilidad:** Alas mecánicas · Cola con pistón · Glándulas/tanques luminosos.
 
+## Fondos de arena (uno por bioma) — INGLÉS
+
+> Suelo en **vista cenital**, **oscuro y de bajo contraste** (los personajes brillantes
+> deben resaltar), **seamless/tileable** (sin costuras, para rellenar cualquier tamaño).
+> Sin chroma key (es un fondo opaco). Guardar en `game/assets/maps/<bioma>.png`.
+
+**Style preamble (backgrounds):**
+```
+Pixel art 2D, 16-bit retro game background, TOP-DOWN ground/floor texture for a battle arena seen from directly above. SEAMLESS TILEABLE texture: the pattern wraps perfectly on all four edges with no visible seams. DARK and LOW-CONTRAST overall so bright characters placed on top clearly stand out. Subtle even detail across the whole image, no single focal point, no strong highlights, no light source. NO characters, NO creatures, NO objects, NO text, NO UI, NO border, NO vignette. Cohesive limited dark palette. Square image, flat top-down perspective.
+```
+
+**Subjects (añade al preámbulo):**
+- **Bosque Abisal** (`bosque.png`): `Subject: dark abyssal forest floor — damp mossy ground, very dark teal-green, scattered roots and cables, faint bioluminescent spores, wet dark stone.`
+- **Cavernas de Magma** (`magma.png`): `Subject: dark volcanic cavern floor — charred black rock and ash, thin DIM cracks of glowing lava, a few embers. Very dark with faint orange glow.`
+- **Tundra Espectral** (`tundra.png`): `Subject: dark frozen tundra floor — cracked ice and frost over dark stone, pale blue tints, faint spectral glow. Very dark cold blue palette.`
+
+> Estos NO se cortan ni se les quita fondo: van directos a `game/assets/maps/` y los uso
+> como textura tileada de la arena.
+
 ## Marcos de rareza (8 tiers)
 
 Para los marcos/auras de los objetos, usa estos colores (Fresh→BioMerge):
