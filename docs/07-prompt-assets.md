@@ -4,20 +4,45 @@
 > (criaturas biomecánicas, vibe Digimon). Pega el "estilo base" + el sujeto concreto.
 > Genera **un asset por imagen**. Pide siempre **fondo transparente y sin texto**.
 
+## Formato preciso y perspectiva (LÉELO PRIMERO)
+
+- **Perspectiva: vista lateral (side view), la criatura MIRA A LA DERECHA.** Aunque el
+  campo se vea "desde arriba", usamos sprites laterales tipo *billboard* (como el dino de
+  referencia) y los **volteamos en el motor** hacia su objetivo. Estándar en 2D y aprovecha
+  el detalle. **No** pidas vista cenital.
+- **Fondo TRANSPARENTE**, sin texto, sin marca de agua, sin escena, sin sombra de suelo.
+- **Un asset por imagen** (o una hoja de frames, ver abajo). Lienzo **cuadrado**, criatura
+  **centrada** con margen transparente. Nosotros recortamos/escalamos.
+- **Frames para recortar nosotros:** pide una **HOJA HORIZONTAL** de N cuadros del **mismo
+  tamaño**, **alineados a una rejilla, SIN separación ni fondo entre cuadros** (así cortamos
+  dividiendo el ancho entre N). Recomendado: **4 frames** → idle-1, idle-2, ataque, daño.
+  *(Lo más simple: **1 solo frame idle** y animamos el rebote por código.)*
+- **Consistencia:** misma paleta por color de especie, **contorno oscuro de 1px**, luz
+  arriba-izquierda, mismo nivel de detalle y grosor de línea en todos.
+
+## Set mínimo (v1) — genera SOLO esto primero
+
+1. **5 criaturas** (idle, lateral, mirando a la derecha) — tabla de abajo.
+2. **3 secuaces** (uno por bioma).
+3. **3 jefes** (uno por bioma).
+
+> Las **9 partes**, los **marcos de rareza** y la **GUI** se siguen dibujando por código por
+> ahora; déjalos para una v2.
+
 ## Estilo base (preámbulo — pégalo antes de cada sujeto)
 
 ```
 Pixel art 2D, sprite de videojuego retro 16-bit, estilo monstruo coleccionable (tipo
-Digimon). Criatura BIOMECÁNICA que combina un animal con tecnología: partes orgánicas
-con detalles cibernéticos (placas metálicas, circuitos, tubos, LEDs/luces de neón,
-articulaciones de pistón). Vista lateral ligeramente 3/4. Silueta clara y legible a
-tamaño pequeño. Sombreado por celdas con 3-4 tonos por color y CONTORNO oscuro de 1px.
-Paleta limitada y cohesiva. Resolución nativa baja con píxeles nítidos (nearest-neighbor,
-sin difuminado ni antialias). FONDO TRANSPARENTE, sujeto centrado, sin texto, sin marca de
-agua, sin escena de fondo, sin sombra de suelo.
+Digimon). Criatura BIOMECÁNICA que combina un animal con tecnología: partes orgánicas con
+detalles cibernéticos (placas metálicas, circuitos, tubos, LEDs/luces de neón, pistones).
+VISTA LATERAL PURA, mirando a la DERECHA, cuerpo completo. Silueta clara y legible.
+Sombreado por celdas con 3-4 tonos por color y CONTORNO oscuro de 1px. Paleta limitada y
+cohesiva, sin antialias. FONDO TRANSPARENTE, sujeto centrado, sin texto, sin marca de agua,
+sin escena de fondo, sin sombra de suelo.
 ```
 
-**Salida pedida:** PNG con transparencia, ~**48×48** px nativo (o 64×64), un sujeto por imagen.
+**Salida:** PNG transparente. Para frames: añade al final →
+`Hoja horizontal de 4 cuadros del mismo tamaño en una rejilla, sin separación entre cuadros: idle, idle, ataque, daño.`
 
 ## Criaturas del jugador (5 especies)
 
