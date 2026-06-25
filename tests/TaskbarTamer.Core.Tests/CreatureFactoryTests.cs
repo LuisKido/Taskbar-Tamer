@@ -32,10 +32,10 @@ public class CreatureFactoryTests
         for (ulong seed = 0; seed < 200; seed++)
         {
             Stats s = CreatureFactory.Roll(1, seed).Innate;
-            Assert.InRange(s.MaxHp, 220, 380);
-            Assert.InRange(s.Attack, 14, 30);
-            Assert.InRange(s.Defense, 6, 18);
-            Assert.InRange(s.Speed, 8, 24);
+            Assert.InRange(s.MaxHp, 30, 60);
+            Assert.InRange(s.Attack, 3, 7);
+            Assert.InRange(s.Defense, 1, 4);
+            Assert.InRange(s.Speed, 2, 6);
         }
     }
 }

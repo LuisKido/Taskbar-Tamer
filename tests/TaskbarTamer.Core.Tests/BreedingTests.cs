@@ -51,14 +51,14 @@ public class BreedingTests
     {
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            // Claws Fresh -> Attack 50.
+            // Claws Fresh -> Attack 5.
             [AnatomySlot.Claws] = PartFactory.Create(7, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config),
         };
         var champion = new Creature(1, "veterano", S(100, 0, 0, 0), equipped, level: 30, maxLevel: 30);
 
         Trait trait = Breeder.TraitFromPart(champion, AnatomySlot.Claws, Config);
 
-        Assert.Equal(25, trait.StatBonus.Attack); // 50 * 50%
+        Assert.Equal(2, trait.StatBonus.Attack); // 5 * 50% = 2 (división entera)
     }
 
     [Fact]

@@ -37,7 +37,7 @@ public class PartFactoryTests
     public void Fresh_aplica_factor_x1()
     {
         Part comun = PartFactory.Create(1, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config);
-        // La plantilla base de Claws es Attack 50 y Fresh = x1.0.
-        Assert.Equal(50, comun.BaseStats.Attack);
+        // La plantilla base de Claws es Attack 5 y Fresh = x1.0.
+        Assert.Equal(5, comun.BaseStats.Attack);
     }
 }

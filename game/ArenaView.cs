@@ -23,11 +23,11 @@ public partial class ArenaView : Control
     private const float PlayerAttackInterval = 0.55f;
     private const float EnemyAttackInterval = 0.9f;
     private const int WaveSize = 5;
-    private const float BaseEnemyHp = 22f;
+    private const float BaseEnemyHp = 14f;
     private const int MapBand = 10;
     private const float WaveHealFraction = 0.35f;
     private const float AbilityInterval = 6f;
-    private const float ShieldFraction = 0.6f; // escudo de la Barrera = 60% de la vida máx
+    private const float ShieldFraction = 0.3f; // escudo de la Barrera = 30% de la vida máx
     private const float DashDuration = 0.22f;
     private const float JumpDuration = 0.5f;
     private const float JumpHeight = 28f;
@@ -261,7 +261,7 @@ public partial class ArenaView : Control
     private PlayerUnit MakeUnit(Creature creature, Role role, int laneIndex, int laneCount)
     {
         Stats s = StatsResolver.Resolve(creature, SetRegistry.Empty).Stats;
-        float maxHp = Math.Max(40f, s.MaxHp);
+        float maxHp = Math.Max(25f, s.MaxHp);
 
         var eq = creature.Equipped;
         bool offense = eq.ContainsKey(AnatomySlot.Claws) || eq.ContainsKey(AnatomySlot.Fangs) || eq.ContainsKey(AnatomySlot.Stinger);
@@ -274,7 +274,7 @@ public partial class ArenaView : Control
             Role = role,
             LaneIndex = laneIndex,
             LaneCount = laneCount,
-            Damage = Math.Max(4f, s.Attack * 0.5f),
+            Damage = Math.Max(2f, s.Attack * 0.5f),
             CritChance = Math.Clamp(0.12f + s.CritChance / 10000f, 0f, 0.6f),
             AttackTimer = GD.Randf() * PlayerAttackInterval,
             Color = role == Role.Melee ? MeleeColor : RangedColor,

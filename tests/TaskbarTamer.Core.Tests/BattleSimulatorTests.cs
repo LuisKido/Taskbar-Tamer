@@ -160,14 +160,14 @@ public class BattleSimulatorTests
 
         var equipped = new Dictionary<AnatomySlot, Part>
         {
-            [AnatomySlot.Claws] = PartFactory.Create(1, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config), // Attack 50
-            [AnatomySlot.Fangs] = PartFactory.Create(2, "Abisal", AnatomySlot.Fangs, Rarity.Fresh, Config), // Attack 50
+            [AnatomySlot.Claws] = PartFactory.Create(1, "Abisal", AnatomySlot.Claws, Rarity.Fresh, Config), // Attack 5
+            [AnatomySlot.Fangs] = PartFactory.Create(2, "Abisal", AnatomySlot.Fangs, Rarity.Fresh, Config), // Attack 5
         };
         var creature = Mk(1, S(hp: 100, atk: 0, def: 0, spd: 10), equipped);
 
         ResolvedCreature resolved = StatsResolver.Resolve(creature, sets);
 
-        Assert.Equal(100, resolved.Stats.Attack);  // 0 innato + 50 + 50
+        Assert.Equal(10, resolved.Stats.Attack);   // 0 innato + 5 + 5
         Assert.Equal(110, resolved.Stats.Speed);   // 10 innato + 100 del set
         Assert.Empty(resolved.Keywords);           // este set solo da stats, ninguna keyword
     }

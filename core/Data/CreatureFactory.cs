@@ -20,10 +20,10 @@ public static class CreatureFactory
         var rng = new DeterministicRng(seed);
 
         string name = Names[rng.NextInt(Names.Length)];
-        int hp = 220 + rng.NextInt(161);   // 220..380
-        int atk = 14 + rng.NextInt(17);    // 14..30
-        int def = 6 + rng.NextInt(13);     // 6..18
-        int spd = 8 + rng.NextInt(17);     // 8..24
+        int hp = 30 + rng.NextInt(31);     // 30..60
+        int atk = 3 + rng.NextInt(5);      // 3..7
+        int def = 1 + rng.NextInt(4);      // 1..4
+        int spd = 2 + rng.NextInt(5);      // 2..6
 
         return new Creature(id, name, new Stats(hp, atk, def, spd, 0, 0, 0, 0));
     }

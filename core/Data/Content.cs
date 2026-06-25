@@ -52,12 +52,12 @@ public static class Content
 
     private static Stats InnateFor(Archetype a) => a switch
     {
-        Archetype.Guardian => new Stats(360, 16, 18, 10, 0, 0, 0, 0),                                   // tanque
-        Archetype.Bruiser => new Stats(240, 30, 8, 14, CritChance: 1500, CritDamage: 5000, 0, 0),       // pegador
-        Archetype.Charger => new Stats(220, 22, 6, 24, 0, 0, 0, 0),                                     // veloz
-        Archetype.Leaper => new Stats(260, 20, 10, 18, 0, 0, 0, 0),                                     // saltador
-        Archetype.Venomous => new Stats(230, 18, 8, 14, 0, 0, 0, StatusPower: 2000),                    // veneno
-        _ => new Stats(250, 18, 10, 14, 0, 0, 0, 0),
+        Archetype.Guardian => new Stats(40, 3, 4, 2, 0, 0, 0, 0),                              // tanque
+        Archetype.Bruiser => new Stats(28, 6, 2, 3, CritChance: 600, CritDamage: 5000, 0, 0),  // pegador
+        Archetype.Charger => new Stats(26, 4, 1, 6, 0, 0, 0, 0),                               // veloz
+        Archetype.Leaper => new Stats(30, 4, 2, 4, 0, 0, 0, 0),                                // saltador
+        Archetype.Venomous => new Stats(27, 3, 2, 3, 0, 0, 0, StatusPower: 800),               // veneno
+        _ => new Stats(28, 3, 2, 3, 0, 0, 0, 0),
     };
 
     /// <summary>Crea la criatura de un arquetipo (sin equipo; el jugador la equipa).</summary>
@@ -80,9 +80,9 @@ public static class Content
     public static Setup RivalSetup()
     {
         // Ids altos para no colisionar con las criaturas del jugador en las vistas.
-        var brute = new Creature(900_001, "Gnasher", new Stats(260, 22, 8, 12, 0, 0, 0, 0));
+        var brute = new Creature(900_001, "Gnasher", new Stats(26, 3, 1, 2, 0, 0, 0, 0));
         var vesp = new Creature(900_002, "Vesp",
-            new Stats(170, 16, 4, 24, CritChance: 2500, CritDamage: 6000, 0, 0));
+            new Stats(18, 2, 1, 3, CritChance: 300, CritDamage: 6000, 0, 0));
         return new Setup(new[] { brute }, new[] { vesp });
     }
 }
