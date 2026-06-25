@@ -69,6 +69,46 @@ Pega `[estilo base]` + uno de estos:
 
 > Opcional (animación): pide **una fila de 2-4 frames** del mismo tamaño (idle con leve rebote, ataque) como sprite sheet horizontal, fondo transparente, celdas uniformes.
 
+## Prompts en INGLÉS (listos para pegar — uno por criatura)
+
+> Fondo verde plano (chroma) salvo Toxia (magenta). El slicer detecta y quita el fondo.
+
+**Mordak (Guardian — tank, blue):**
+```
+Pixel art 2D, 16-bit retro game sprite, collectible monster style (Digimon-like). An ANTHROPOMORPHIC (furry/kemono) BIPEDAL ANIMAL WARRIOR standing on two legs, with fur/scales, armor and biomechanical tech parts (metal plates, circuits, tubes, glowing neon LEDs, piston joints). Full body, PURE SIDE VIEW facing RIGHT, heroic stance. Clear readable silhouette. Cel-shaded, 3-4 tones per color, dark 1px outline. Limited cohesive palette, no anti-aliasing. FLAT SOLID UNIFORM CHROMA-KEY BACKGROUND: pure bright GREEN #00FF00, identical across the whole image, no gradient, no shadow, no pattern; the character must NOT use that green. No text, no watermark, no scene. Character centered.
+Subject: "Mordak", an anthropomorphic TURTLE warrior, bipedal, BLUE. Heavy plated armor, a turtle shell on the back, a large glowing ENERGY SHIELD on one arm, visored helmet, sturdy heavy build. Role: defensive tank.
+Horizontal sheet of 4 equal-size frames in a single row, same flat green background between frames, same character size and position in each frame: idle, idle, attack, hurt.
+```
+
+**Rendkar (Bruiser — heavy ranged, orange):**
+```
+[same style preamble as above]
+Subject: "Rendkar", an anthropomorphic RHINO/BULL warrior, bipedal, muscular, ORANGE. A biomechanical ARM-CANNON on one arm, massive shoulder pads, a horn, aiming stance. Role: heavy ranged attacker.
+Horizontal sheet of 4 equal-size frames in a single row, same flat green background between frames, same character size and position: idle, idle, attack, hurt.
+```
+
+**Voltfang (Charger — fast evasive, cyan):**
+```
+[same style preamble]
+Subject: "Voltfang", an anthropomorphic WOLF ninja, bipedal, slim and agile, CYAN. Fur, electric energy lines, blades/claws, lightning accents. Role: fast evasive striker.
+Horizontal sheet of 4 equal-size frames in a single row, same flat green background between frames, same character size and position: idle, idle, attack, hurt.
+```
+
+**Skarn (Leaper — jumper, purple):**
+```
+[same style preamble]
+Subject: "Skarn", an anthropomorphic FROG/RABBIT acrobat, bipedal, PURPLE. Oversized spring/piston hydraulic legs, lithe flexible body. Role: jumping acrobat.
+Horizontal sheet of 4 equal-size frames in a single row, same flat green background between frames, same character size and position: idle, idle, attack, hurt.
+```
+
+**Toxia (Venomous — poison AoE, green) — MAGENTA background:**
+```
+[same style preamble BUT replace the background line with:]
+FLAT SOLID UNIFORM CHROMA-KEY BACKGROUND: pure bright MAGENTA #FF00FF, identical across the whole image, no gradient/shadow/pattern; the character must NOT use that magenta.
+Subject: "Toxia", an anthropomorphic SCORPION/LIZARD warrior, bipedal, GREEN. Glowing venom tanks and tubes on the back, gauntlets with syringes/stinger, a hood. Role: poison area attacker.
+Horizontal sheet of 4 equal-size frames in a single row, same flat magenta background between frames, same character size and position: idle, idle, attack, hurt.
+```
+
 ## Enemigos por mapa (3 biomas)
 
 Criaturas-secuaz biomecánicas, más simples y "monstruosas" (blob con pinchos), 1 por bioma + su jefe (más grande, imponente, con cuernos):
